@@ -1,99 +1,140 @@
 from __future__ import annotations
 
+import collections
 import os.path
+import pathlib
 import pickle
 from collections import defaultdict
 
 import cv2
-import tensorflow as tf
-import numpy as np
-import pandas as pd
-import tqdm
-from sklearn.model_selection import train_test_split
-from sklearn.utils import shuffle
-from ShogiNeuralNetwork.data_info import CATEGORIES_FIGURE_TYPE, CATEGORIES_DIRECTION
-from config import GLOBAL_CONFIG
-from extra.image_modes import ImageMode
-from extra.types import ImageNP, Figure, Direction
 import imagehash
+import keras
+import numpy as np
+import sklearn.model_selection
+import tensorflow as tf
+import tqdm
 from PIL import Image
-from . import preprocessing
-from . import augmentation
+from sklearn.model_selection import train_test_split
 
-
-def equalize_classes(data: pd.DataFrame) -> pd.DataFrame:
-    shuffled_data = shuffle(data)
-    classes_counts = shuffled_data["figure_type"].value_counts()
-    min_count = classes_counts.min() * 3
-    del_indices = []
-    for i, row in shuffled_data.iterrows():
-        if classes_counts[row["figure_type"]] > min_count:
-            del_indices.append(i)
-            classes_counts[row["figure_type"]] -= 1
-    new_data = data.drop(index=del_indices)
-    return new_data
-
-
-def enums_to_labels(data: pd.DataFrame) -> pd.DataFrame:
-    new_data = data.copy()
-    new_data["figure_type"] = new_data["figure_type"].apply(lambda f: CATEGORIES_FIGURE_TYPE.index(f))
-    new_data["direction"] = new_data["direction"].apply(lambda d: CATEGORIES_DIRECTION.index(d))
-    return new_data
-
-
-def reshape_imgs(data: pd.DataFrame) -> pd.DataFrame:
-    """Converts all SIZE x SIZE images to SIZE x SIZE x 1"""
-    new_data = data.copy()
-    new_data["image"] = new_data["image"].apply(preprocessing.reshape_image)
-    return new_data
+from ShogiNeuralNetwork.data_info import CATEGORIES_FIGURE_TYPE, CATEGORIES_DIRECTION
+from extra.types import ImageNP, Figure, Direction, FilePath
 
 
 class CellsDataset:
+    """
+    Class for dataset of cell images
+    Stores images of each board cell, its figure and direction
+    """
+
+    # Stores hash of images (full images of boards, NOT each cell) used to create dataset
+    # Useful for me because I always forget which set of images I used and which not
     __visited_images_hashes: set[imagehash.ImageHash]
 
-    __data: pd.DataFrame
-    """
-    Dataframe columns:
-        image: np.ndarray
-        figure_type: Figure
-        direction: Direction
-    """
+    # Dataset fields
+    __images: list[ImageNP]  # List of cell images. Could be different sizes
+    __figures: list[Figure]
+    __directions: list[Direction]
 
-    def __init__(self, data: pd.DataFrame = None, visited_hashes=None):
-        self.__data = data
-        self.__visited_images_hashes = visited_hashes
+    def __init__(self):
+        self.__visited_images_hashes = set()
+        self.__images = []
+        self.__figures = []
+        self.__directions = []
 
-    def is_image_visited(self, path: str) -> bool:
-        img = Image.open(path)
+    def is_image_visited(self, img_path: FilePath) -> bool:
+        """Returns True if image has already been added to this dataset"""
+        img = Image.open(img_path)
         img_hash = imagehash.average_hash(img)
         return img_hash in self.__visited_images_hashes
 
-    def add_image_hash(self, path: str) -> None:
-        img = Image.open(path)
+    def add_image_hash(self, img_path: FilePath) -> None:
+        """Adds hash of image to dataset so that it won't permit adding it again"""
+        img = Image.open(img_path)
         img_hash = imagehash.average_hash(img)
         self.__visited_images_hashes.add(img_hash)
 
-    def load_pickle(self, path: str):
-        if os.path.exists(path):
-            with open(path, "rb") as f:
-                pkl_data = pickle.load(f)
-                self.__data = pkl_data[0]
-                self.__visited_images_hashes = pkl_data[1]
-        else:
-            self.__data = pd.DataFrame(columns=["image", "figure_type", "direction"])
-            self.__visited_images_hashes = set()
+    def save_yolo(self, path: FilePath) -> None:
+        """Saves dataset to YOLO dataset format in two variants: figure and direction"""
+        data = list(zip(self.__images, self.__figures, self.__directions))
+        train, valid = sklearn.model_selection.train_test_split(data)
+        train = list(zip(*train))
+        valid = list(zip(*valid))
 
-    def save_pickle(self, path: str):
+        for (images, figures, directions), dir_name in [
+            (train, "train"),
+            (valid, "val"),
+            (valid, "test"),
+        ]:
+            count = defaultdict(int)
+            for i in tqdm.trange(len(images), desc=f"Saving YOLO dataset ({dir_name})"):
+                img = images[i]
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)  # cv2 saves in bgr
+                figure = figures[i]
+                direction = directions[i]
+                count[figure] += 1
+                count[direction] += 1
+                figure_img_name = f"{count[figure]}.jpg"
+                direction_img_name = f"{count[direction]}.jpg"
+                figure_dir_path = os.path.join(path, "figure", dir_name, figure.name)
+                direction_dir_path = os.path.join(path, "direction", dir_name, direction.name)
+                os.makedirs(figure_dir_path, exist_ok=True)
+                os.makedirs(direction_dir_path, exist_ok=True)
+                cv2.imwrite(os.path.join(figure_dir_path, figure_img_name), img)
+                cv2.imwrite(os.path.join(direction_dir_path, direction_img_name), img)
+
+    @classmethod
+    def load_pickle(cls, path: FilePath) -> CellsDataset:
+        """Loads dataset from pickle"""
+        with open(path, "rb") as f:
+            pkl_data = pickle.load(f)
+            ds = CellsDataset()
+            ds.__visited_images_hashes = pkl_data[0]
+            ds.__images = pkl_data[1]
+            ds.__figures = pkl_data[2]
+            ds.__directions = pkl_data[3]
+            return ds
+
+    def save_pickle(self, path: FilePath) -> None:
+        """Saves dataset to pickle"""
         with open(path, "wb") as f:
-            pkl_data = [self.__data, self.__visited_images_hashes]
+            pkl_data = [
+                self.__visited_images_hashes,
+                self.__images,
+                self.__figures,
+                self.__directions,
+            ]
             pickle.dump(pkl_data, f)
 
-    def save(self, path: str):
+    @classmethod
+    def load(cls, path: FilePath) -> CellsDataset:
+        """Loads dataset"""
+        path = pathlib.Path(path)
+        ds = CellsDataset()
+        for img_path in tqdm.tqdm(list(path.glob("*/*/*.jpg")), desc="Loading dataset"):
+            img = cv2.imread(img_path)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            figure = Figure[img_path.parent.parent.stem]
+            direction = Direction[img_path.parent.stem]
+            ds.__images.append(img)
+            ds.__figures.append(figure)
+            ds.__directions.append(direction)
+
+        if (path / "images_hash.pickle").exists():
+            with open(path / "images_hash.pickle", "rb") as f:
+                ds.__visited_images_hashes = pickle.load(f)
+
+        return ds
+
+    def save(self, path: FilePath) -> None:
+        """Saves dataset
+        Folders structure: :path/FIGURE/DIRECTION/*.jpg
+        """
         count = defaultdict(int)
-        for _, row in tqdm.tqdm(self.__data.iterrows()):
-            img = row["image"]
-            figure = row["figure_type"]
-            direction = row["direction"]
+        for i in tqdm.trange(len(self.__images), desc="Saving dataset"):
+            img = self.__images[i]
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)  # cv2 saves in bgr
+            figure = self.__figures[i]
+            direction = self.__directions[i]
             count[(figure, direction)] += 1
             img_name = f"{count[(figure, direction)]}.jpg"
             dir_path = os.path.join(path, figure.name, direction.name)
@@ -104,101 +145,80 @@ class CellsDataset:
         with open(img_hash_path, "wb") as f:
             pickle.dump(self.__visited_images_hashes, f)
 
-    def load(self, path: str):
-        data = []
-        for figure in Figure:
-            for direction in Direction:
-                folder_path = os.path.join(path, figure.name, direction.name)
-                if os.path.exists(folder_path):
-                    for img_name in os.listdir(folder_path):
-                        img_path = os.path.join(folder_path, img_name)
-                        img = cv2.imread(img_path)
-                        data.append((img, figure, direction))
-        self.__data = pd.DataFrame(data, columns=["image", "figure_type", "direction"])
-        img_hash_path = os.path.join(path, "images_hash.pickle")
-        with open(img_hash_path, "rb") as f:
-            self.__visited_images_hashes = pickle.load(f)
+    def add_image(self, cell_img: ImageNP, figure: Figure, direction: Direction) -> None:
+        """Add cell image to dataset"""
+        self.__images.append(cell_img)
+        self.__figures.append(figure)
+        self.__directions.append(direction)
 
-    def add_image(self, cell_img: ImageNP, figure: Figure, direction: Direction):
-        self.__data.loc[len(self.__data)] = [cell_img, figure, direction]
-
-    def convert(
+    def to_tf_dataset(
             self,
-            image_mode: ImageMode,
-    ) -> CellsDataset:
-        def func(img):
-            return image_mode.convert_image(img)
+            cell_image_size: int,
+            test_fraction: float = 0.2,
+            batch_size: int = 64,
+            augment: bool = True
+    ) -> tuple[tf.data.Dataset, tf.data.Dataset]:
+        """
+        Converts dataset to tf.data.Dataset pipeline with augmentation, batching, resizing and scaling
+        """
 
-        new_data = self.__data.copy()
-        new_data["image"] = new_data["image"].apply(func)
-        return CellsDataset(new_data, self.__visited_images_hashes)
+        # resizing to fixed size
+        images = np.array([
+            cv2.resize(img, (cell_image_size, cell_image_size)).astype("float32") / 255.0
+            for img in self.__images
+        ])
 
-    def resize(self, size: tuple[int, int]) -> CellsDataset:
-        def func(img):
-            return cv2.resize(img, size)
+        # Converting enums to integers
+        figures = np.array([CATEGORIES_FIGURE_TYPE.index(figure) for figure in self.__figures])
+        directions = np.array([CATEGORIES_DIRECTION.index(direction) for direction in self.__directions])
 
-        new_data = self.__data.copy()
-        new_data["image"] = new_data["image"].apply(func)
-        return CellsDataset(new_data, self.__visited_images_hashes)
+        train_images, test_images, train_figures, test_figures, train_directions, test_directions = train_test_split(
+            images,
+            figures,
+            directions,
+            test_size=test_fraction
+        )
 
-    def __prepare_1(self) -> pd.DataFrame:
-        new_data = self.__data
-        # new_data = equalize_classes(new_data)
-        new_data = enums_to_labels(new_data)
-        new_data = reshape_imgs(new_data)
-        return new_data
-
-    def __to_tf_dataset(self) -> tuple[tf.data.Dataset, tf.data.Dataset]:
-        data = self.__prepare_1()
-        train, test = train_test_split(data, test_size=GLOBAL_CONFIG.NeuralNetworkTraining.test_fraction)
-
-        train_images = np.array(train["image"].tolist())
-        train_figure_labels = train["figure_type"].to_numpy()
-        train_direction_labels = train["direction"].to_numpy()
-
-        test_images = np.array(test["image"].tolist())
-        test_figure_labels = test["figure_type"].to_numpy()
-        test_direction_labels = test["direction"].to_numpy()
-
-        train_tf = tf.data.Dataset.from_tensor_slices(
+        train_ds = tf.data.Dataset.from_tensor_slices(
             (
                 train_images,
-                {"figure": train_figure_labels, "direction": train_direction_labels}
+                {"figure": train_figures, "direction": train_directions}
             )
         )
+        train_ds = train_ds.shuffle(train_ds.cardinality())
+        train_ds = train_ds.batch(batch_size)
+        if augment:
+            augment = keras.Sequential([
+                keras.layers.RandomRotation(factor=0.05),
+                keras.layers.RandomTranslation(height_factor=0.1, width_factor=0.1),
+                keras.layers.RandomZoom(height_factor=0.05),
+                keras.layers.RandomBrightness(factor=0.2, value_range=[0.0, 1.0]),
+                keras.layers.RandomErasing(),
+            ])
 
-        test_tf = tf.data.Dataset.from_tensor_slices(
+            train_ds = train_ds.map(lambda img, outputs: (augment(img), outputs))
+        train_ds = train_ds.prefetch(5)
+
+        test_ds = tf.data.Dataset.from_tensor_slices(
             (
                 test_images,
-                {"figure": test_figure_labels, "direction": test_direction_labels}
+                {"figure": test_figures, "direction": test_directions}
             )
         )
+        test_ds = test_ds.batch(batch_size)
 
-        return train_tf, test_tf
+        return train_ds, test_ds
 
-    def __prepare_train(self, ds: tf.data.Dataset) -> tf.data.Dataset:
-        train_ds = (
-            ds
-            .shuffle(ds.cardinality())
-            .batch(GLOBAL_CONFIG.NeuralNetworkTraining.batch_size)
-            .map(lambda img, outputs:
-                 (augmentation.resize_and_rescale(img), outputs))
-            .map(lambda img, outputs:
-                 (augmentation.augment(img), outputs))
-        )
-        return train_ds
+    def class_counts(self, figure=True, direction=True) -> dict[Figure | Direction | tuple[Figure, Direction], int]:
+        if figure and not direction:
+            return collections.Counter(self.__figures)
+        elif direction and not figure:
+            return collections.Counter(self.__directions)
+        else:
+            return collections.Counter(zip(self.__figures, self.__directions))
 
-    def __prepare_test(self, ds: tf.data.Dataset) -> tf.data.Dataset:
-        test_ds = (
-            ds
-            .batch(GLOBAL_CONFIG.NeuralNetworkTraining.batch_size)
-            .map(lambda img, outputs:
-                 (augmentation.resize_and_rescale(img), outputs))
-        )
-        return test_ds
+    def __len__(self) -> int:
+        return len(self.__images)
 
-    def get_tf_dataset(self) -> tuple[tf.data.Dataset, tf.data.Dataset]:
-        train, test = self.__to_tf_dataset()
-        train = self.__prepare_train(train)
-        test = self.__prepare_test(test)
-        return train, test
+    def __getitem__(self, i: int) -> tuple[ImageNP, Figure, Direction]:
+        return self.__images[i], self.__figures[i], self.__directions[i]
