@@ -21,3 +21,6 @@ CATEGORIES_FIGURE_TYPE = [
 ]
 
 CATEGORIES_DIRECTION = [Direction.UP, Direction.DOWN, Direction.NONE]
+
+DIRECTION_TO_INDEX = {direction: CATEGORIES_DIRECTION.index(direction) for direction in CATEGORIES_DIRECTION}
+FIGURE_TO_INDEX = {figure: CATEGORIES_FIGURE_TYPE.index(figure) for figure in CATEGORIES_FIGURE_TYPE}

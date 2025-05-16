@@ -16,7 +16,7 @@ import tqdm
 from PIL import Image
 from sklearn.model_selection import train_test_split
 
-from ShogiNeuralNetwork.data_info import CATEGORIES_FIGURE_TYPE, CATEGORIES_DIRECTION
+from ShogiNeuralNetwork import data_info
 from extra.types import ImageNP, Figure, Direction, FilePath
 
 
@@ -156,21 +156,31 @@ class CellsDataset:
             cell_image_size: int,
             test_fraction: float = 0.2,
             batch_size: int = 64,
-            augment: bool = True
+            augment: bool = True,
+            to_grayscale: bool = True,
     ) -> tuple[tf.data.Dataset, tf.data.Dataset]:
         """
         Converts dataset to tf.data.Dataset pipeline with augmentation, batching, resizing and scaling
+        Dataset has two outputs: "figure" and "direction"
         """
 
-        # resizing to fixed size
+        # preprocessing images so that they are same size, float in range [0, 1] and grayscale if needed
+        def process(img: np.ndarray):
+            if to_grayscale:
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            img = cv2.resize(img, (cell_image_size, cell_image_size))
+            img = np.expand_dims(img, axis=-1)
+            img = img.astype("float32") / 255.0
+            return img
+
         images = np.array([
-            cv2.resize(img, (cell_image_size, cell_image_size)).astype("float32") / 255.0
+            process(img)
             for img in self.__images
         ])
 
         # Converting enums to integers
-        figures = np.array([CATEGORIES_FIGURE_TYPE.index(figure) for figure in self.__figures])
-        directions = np.array([CATEGORIES_DIRECTION.index(direction) for direction in self.__directions])
+        figures = np.array([data_info.FIGURE_TO_INDEX[figure] for figure in self.__figures])
+        directions = np.array([data_info.DIRECTION_TO_INDEX[direction] for direction in self.__directions])
 
         train_images, test_images, train_figures, test_figures, train_directions, test_directions = train_test_split(
             images,
@@ -188,15 +198,15 @@ class CellsDataset:
         train_ds = train_ds.shuffle(train_ds.cardinality())
         train_ds = train_ds.batch(batch_size)
         if augment:
-            augment = keras.Sequential([
+            augmentation = keras.Sequential([
+                keras.layers.RandomGaussianBlur(),
                 keras.layers.RandomRotation(factor=0.05),
                 keras.layers.RandomTranslation(height_factor=0.1, width_factor=0.1),
                 keras.layers.RandomZoom(height_factor=0.05),
                 keras.layers.RandomBrightness(factor=0.2, value_range=[0.0, 1.0]),
-                keras.layers.RandomErasing(),
+                keras.layers.RandomErasing(value_range=[0, 1]),
             ])
-
-            train_ds = train_ds.map(lambda img, outputs: (augment(img), outputs))
+            train_ds = train_ds.map(lambda img, outputs: (augmentation(img), outputs))
         train_ds = train_ds.prefetch(5)
 
         test_ds = tf.data.Dataset.from_tensor_slices(
@@ -216,6 +226,15 @@ class CellsDataset:
             return collections.Counter(self.__directions)
         else:
             return collections.Counter(zip(self.__figures, self.__directions))
+
+    def class_weights(self) -> tuple[dict, dict]:
+        """Returns weights for each class so that rare classes weigh more"""
+        n = len(self.__images)
+        figure_counts = collections.Counter(self.__figures)
+        figure_weights = {data_info.FIGURE_TO_INDEX[figure]: n / count for figure, count in figure_counts.items()}
+        direction_counts = collections.Counter(self.__directions)
+        direction_weights = {data_info.DIRECTION_TO_INDEX[direction]: n / count for direction, count in direction_counts.items()}
+        return figure_weights, direction_weights
 
     def __len__(self) -> int:
         return len(self.__images)

@@ -6,7 +6,7 @@ from .CornerDetector import CornerDetector
 from config import paths
 from extra.types import ImageNP, Corners
 
-model = YOLO(paths.BOARD_SEGMENTATION_MODEL_PATH, task="segment")
+model = YOLO(paths.BOARD_SEGMENTATION_YOLO_MODEL_PATH, task="segment")
 
 
 class YOLOSegmentationCornerDetector(CornerDetector):
