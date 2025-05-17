@@ -19,7 +19,7 @@ class ImageGetter(ABC):
     def get_image(self) -> ImageNP:
         pass
 
-    def set_rotation(self, rotation_code: int) -> :
+    def set_rotation(self, rotation_code: int) -> None:
         self.rotation = rotation_code
 
     def rotate_image(self, img: ImageNP):

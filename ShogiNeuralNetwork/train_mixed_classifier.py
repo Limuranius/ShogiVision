@@ -1,10 +1,17 @@
 import os
+import sys
+
+import numpy as np
+
+sys.path.insert(0, "..")  # in case module is called outside venv
 
 import keras
+import sklearn
 import tensorflow as tf
 from matplotlib import pyplot as plt
 
-import ShogiNeuralNetwork
+import ShogiNeuralNetwork.data_info
+from ShogiNeuralNetwork import CellsDataset
 from ShogiNeuralNetwork.data_info import CATEGORIES_FIGURE_TYPE, CATEGORIES_DIRECTION
 from config import paths
 
@@ -49,27 +56,40 @@ def create_model(
     return model
 
 
-def train_and_save_model(img_size: int):
-    dataset = ShogiNeuralNetwork.CellsDataset.load(paths.CELLS_DATASET_PATH)
-    train, test = dataset.to_tf_dataset(
+def train_and_save_model(img_size: int, epochs: int):
+    dataset = CellsDataset.CellsDataset.load(paths.CELLS_DATASET_PATH)
+    train_dataset, test_dataset = dataset.train_test_split(test_fraction=0.2, random_state=42)
+    train = train_dataset.to_tf_dataset(
         cell_image_size=img_size,
-        test_fraction=0.2,
         batch_size=64,
         augment=True,
         to_grayscale=True,
+        shuffle=True,
+    )
+    test = test_dataset.to_tf_dataset(
+        cell_image_size=img_size,
+        batch_size=64,
+        augment=False,
+        to_grayscale=True,
+        shuffle=False,
     )
 
     model = create_model(img_size)
 
-    figure_weights, direction_weights = dataset.class_weights()
-
     history = model.fit(
         train,
-        epochs=30,
+        epochs=epochs,
         validation_data=test,
         callbacks=[
-            keras.callbacks.ReduceLROnPlateau(monitor="val_figure_accuracy", mode="max"),
-            # keras.callbacks.EarlyStopping(monitor="val_figure_accuracy", mode="max"),
+            keras.callbacks.ReduceLROnPlateau(
+                monitor="val_figure_accuracy",
+                mode="max"
+            ),
+            keras.callbacks.EarlyStopping(
+                monitor="val_figure_accuracy",
+                mode="max",
+                patience=10,
+            ),
             keras.callbacks.ModelCheckpoint(
                 filepath=paths.MIXED_MODEL_KERAS_PATH,
                 save_best_only=True,
@@ -77,28 +97,49 @@ def train_and_save_model(img_size: int):
                 mode="max",
             )
         ],
-        # class_weight={
-        #     "figure": figure_weights,
-        #     "direction": direction_weights,
-        # }
     ).history
 
-    plt.figure(figsize=(10, 5))
+    model.export(paths.MIXED_MODEL_EXPORT_PATH)
+
+    plt.figure(figsize=(5, 10))
     _, ax = plt.subplots(ncols=2)
     ax[0].plot(history["direction_accuracy"])
     ax[0].plot(history["val_direction_accuracy"])
     ax[0].set_title("Direction")
     ax[0].legend(["Train", "Valid"])
+    ax[0].grid()
     ax[1].plot(history["figure_accuracy"])
     ax[1].plot(history["val_figure_accuracy"])
     ax[1].set_title("Figure")
     ax[1].legend(["Train", "Valid"])
-    plt.show()
+    ax[1].grid()
+    plt.savefig(paths.MODELS_DIR / "report" / "accuracy.png", dpi=200)
+    plt.close()
+
+    predictions = model.predict(test)
+    figure_predict = predictions[0].argmax(axis=1)
+    direction_predict = predictions[1].argmax(axis=1)
+
+    plt.figure(figsize=(10, 10))
+    ax = plt.subplot()
+    sklearn.metrics.ConfusionMatrixDisplay.from_predictions(
+        test_dataset.figure_labels(),
+        figure_predict,
+        display_labels=[figure.name for figure in ShogiNeuralNetwork.data_info.CATEGORIES_FIGURE_TYPE],
+        xticks_rotation='vertical',
+        ax=ax,
+    )
+    plt.savefig(paths.MODELS_DIR / "report" / "test_confusion.png", dpi=200)
+    plt.close()
+
+    accuracy = test_dataset.figure_labels() == figure_predict
+    print("Balanced accuracy:",
+          np.mean([np.mean(accuracy[figure_predict == i]) for i in range(figure_predict.max() + 1)]))
 
 
 def save_onnx_model():
     os.system("python -m tf2onnx.convert --saved-model {tf_model_path} --output {onnx_model_path}".format(
-        tf_model_path=paths.MIXED_MODEL_KERAS_PATH,
+        tf_model_path=paths.MIXED_MODEL_EXPORT_PATH,
         onnx_model_path=paths.MIXED_MODEL_ONNX_PATH,
     ))
 
@@ -112,7 +153,7 @@ def save_tflite_model():
 
 
 def main():
-    train_and_save_model(img_size=64)
+    train_and_save_model(img_size=64, epochs=100)
     save_onnx_model()
     save_tflite_model()
 

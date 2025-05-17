@@ -151,14 +151,40 @@ class CellsDataset:
         self.__figures.append(figure)
         self.__directions.append(direction)
 
+    def train_test_split(
+            self,
+            test_fraction: float = 0.2,
+            random_state: int = None,
+    ) -> tuple[CellsDataset, CellsDataset]:
+        train_images, test_images, train_figures, test_figures, train_directions, test_directions = train_test_split(
+            self.__images,
+            self.__figures,
+            self.__directions,
+            test_size=test_fraction,
+            random_state=random_state,
+        )
+
+        train = CellsDataset()
+        train.__images = train_images
+        train.__figures = train_figures
+        train.__directions = train_directions
+
+        test = CellsDataset()
+        test.__images = test_images
+        test.__figures = test_figures
+        test.__directions = test_directions
+
+        return train, test
+
+
     def to_tf_dataset(
             self,
             cell_image_size: int,
-            test_fraction: float = 0.2,
             batch_size: int = 64,
             augment: bool = True,
             to_grayscale: bool = True,
-    ) -> tuple[tf.data.Dataset, tf.data.Dataset]:
+            shuffle: bool = True,
+    ) -> tf.data.Dataset:
         """
         Converts dataset to tf.data.Dataset pipeline with augmentation, batching, resizing and scaling
         Dataset has two outputs: "figure" and "direction"
@@ -179,24 +205,18 @@ class CellsDataset:
         ])
 
         # Converting enums to integers
-        figures = np.array([data_info.FIGURE_TO_INDEX[figure] for figure in self.__figures])
-        directions = np.array([data_info.DIRECTION_TO_INDEX[direction] for direction in self.__directions])
+        figures = self.figure_labels()
+        directions = self.direction_labels()
 
-        train_images, test_images, train_figures, test_figures, train_directions, test_directions = train_test_split(
-            images,
-            figures,
-            directions,
-            test_size=test_fraction
-        )
-
-        train_ds = tf.data.Dataset.from_tensor_slices(
+        ds = tf.data.Dataset.from_tensor_slices(
             (
-                train_images,
-                {"figure": train_figures, "direction": train_directions}
+                images,
+                {"figure": figures, "direction": directions}
             )
         )
-        train_ds = train_ds.shuffle(train_ds.cardinality())
-        train_ds = train_ds.batch(batch_size)
+        if shuffle:
+            ds = ds.shuffle(ds.cardinality())
+        ds = ds.batch(batch_size)
         if augment:
             augmentation = keras.Sequential([
                 keras.layers.RandomGaussianBlur(),
@@ -206,18 +226,10 @@ class CellsDataset:
                 keras.layers.RandomBrightness(factor=0.2, value_range=[0.0, 1.0]),
                 keras.layers.RandomErasing(value_range=[0, 1]),
             ])
-            train_ds = train_ds.map(lambda img, outputs: (augmentation(img), outputs))
-        train_ds = train_ds.prefetch(5)
+            ds = ds.map(lambda img, outputs: (augmentation(img), outputs))
+        ds = ds.prefetch(5)
 
-        test_ds = tf.data.Dataset.from_tensor_slices(
-            (
-                test_images,
-                {"figure": test_figures, "direction": test_directions}
-            )
-        )
-        test_ds = test_ds.batch(batch_size)
-
-        return train_ds, test_ds
+        return ds
 
     def class_counts(self, figure=True, direction=True) -> dict[Figure | Direction | tuple[Figure, Direction], int]:
         if figure and not direction:
@@ -235,6 +247,12 @@ class CellsDataset:
         direction_counts = collections.Counter(self.__directions)
         direction_weights = {data_info.DIRECTION_TO_INDEX[direction]: n / count for direction, count in direction_counts.items()}
         return figure_weights, direction_weights
+
+    def figure_labels(self) -> np.ndarray:
+        return np.array([data_info.FIGURE_TO_INDEX[figure] for figure in self.__figures])
+
+    def direction_labels(self) -> np.ndarray:
+        return np.array([data_info.DIRECTION_TO_INDEX[direction] for direction in self.__directions])
 
     def __len__(self) -> int:
         return len(self.__images)

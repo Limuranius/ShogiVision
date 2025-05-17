@@ -43,7 +43,8 @@ class RecognizerONNX(Recognizer):
             self.image_mode,
             self.cell_img_size,
         )
-        predictions = self.model.run(["figure", "direction"], {"input": inp})
+        output_names = [out.name for out in self.model.get_outputs()]
+        predictions = self.model.run(output_names, {"input": inp})
 
         figure_predict = predictions[0].argmax(axis=1)
         direction_predict = predictions[1].argmax(axis=1)
