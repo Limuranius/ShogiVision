@@ -1,11 +1,24 @@
 from Elements import *
+from Elements.ImageGetters import Photo
 from config import paths, GLOBAL_CONFIG
 
 
 def default_recognizer() -> Recognizers.Recognizer:
     return RecognizerYOLO(
-        figure_model_path=paths.FIGURE_CLASSIFICATION_MODEL_PATH,
-        direction_model_path=paths.DIRECTION_CLASSIFICATION_MODEL_PATH,
+        figure_model_path=paths.FIGURE_CLASSIFICATION_YOLO_MODEL_PATH,
+        direction_model_path=paths.DIRECTION_CLASSIFICATION_YOLO_MODEL_PATH,
+    )
+    # return RecognizerONNX(paths.MIXED_MODEL_ONNX_PATH)
+
+
+def default_corner_detector():
+    return YOLOSegmentationCornerDetector()
+
+
+def default_board_splitter():
+    return BoardSplitter(
+        image_getter=Photo(),
+        corner_getter=default_corner_detector(),
     )
 
 
@@ -38,8 +51,8 @@ def empty_reader():
 def image_reader():
     reader = ShogiBoardReader(
         board_splitter=BoardSplitter(
-            ImageGetters.Photo(),
-            CornerDetectors.CoolCornerDetector(),
+            image_getter=Photo(),
+            corner_getter=default_corner_detector(),
         ),
         recognizer=default_recognizer()
     )
@@ -62,7 +75,7 @@ def camera_reader():
     reader = ShogiBoardReader(
         board_splitter=BoardSplitter(
             image_getter=ImageGetters.Camera(),
-            corner_getter=CoolCornerDetector(),
+            corner_getter=default_corner_detector(),
             inventory_detector=None
         ),
         recognizer=default_recognizer()

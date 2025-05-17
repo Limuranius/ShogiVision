@@ -154,4 +154,10 @@ class Board:
                 white += [figure] * count
         return black, white
 
+    def lishogi_link(self) -> str:
+        sfen = self.to_shogi_board().sfen()
+        sfen = sfen.replace(" ", "_")
+        url = f"https://lishogi.org/editor/{sfen}"
+        return url
+
 

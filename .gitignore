@@ -2,7 +2,7 @@ temp
 models
 *.pickle
 ShogiNeuralNetwork/imgs_examples
-ShogiNeuralNetwork/datasets
+datasets
 __pycache__
 .idea
 venv

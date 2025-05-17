@@ -1,12 +1,12 @@
 import numpy as np
 import onnxruntime
+
 from ShogiNeuralNetwork import preprocessing
 from ShogiNeuralNetwork.data_info import CATEGORIES_FIGURE_TYPE, CATEGORIES_DIRECTION
 from extra.figures import Figure, Direction
 from extra.image_modes import ImageMode
 from extra.types import CellsImages, FigureBoard, DirectionBoard, ImageNP
 from .Recognizer import Recognizer
-import json
 
 
 class RecognizerONNX(Recognizer):
@@ -17,9 +17,12 @@ class RecognizerONNX(Recognizer):
     def __init__(self, model_path: str):
         self.model = onnxruntime.InferenceSession(model_path)
 
-        meta = self.model.get_modelmeta().custom_metadata_map
-        self.cell_img_size = json.loads(meta["cell_img_size"])
-        self.image_mode = ImageMode(json.loads(meta["image_mode"]))
+        shape = self.model.get_inputs()[0].shape
+        self.cell_img_size = shape[1]
+        if shape[-1] == 1:
+            self.image_mode = ImageMode.GRAYSCALE
+        else:
+            self.image_mode = ImageMode.ORIGINAL
 
     def recognize_cell(self, cell_img: ImageNP) -> tuple[Figure, Direction]:
         inp = preprocessing.prepare_cell_img(

@@ -1,17 +1,15 @@
-import cv2
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot, QVariant
+
+from Elements.ImageGetters import Photo
 from extra import factories
-from Elements import ShogiBoardReader
+from Elements import ShogiBoardReader, BoardSplitter
 from extra.figures import Figure, Direction
 from GUI.UI.create_dataset import Ui_MainWindow
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
 from GUI.widgets.Skibidi import Skibidi
 from ShogiNeuralNetwork.CellsDataset import CellsDataset
-from config import Paths
-
-
-BOARD_IMG_SIZE = (700, 700)
+from config import paths
 
 
 class CreateDataset(QMainWindow):
@@ -27,8 +25,9 @@ class CreateDataset(QMainWindow):
         self.setAcceptDrops(True)
         self.images_paths = []
         self.reader = factories.image_reader()
+        self.ui.visual_corner_select.set_splitter(self.reader.get_board_splitter())
         self.cells_dataset = CellsDataset()
-        self.cells_dataset.load(Paths.DATASET_PATH)
+        self.cells_dataset.load(paths.CELLS_DATASET_PATH)
         self.cells_select = []
         self.setup()
 
@@ -42,8 +41,6 @@ class CreateDataset(QMainWindow):
                 self.ui.grid.addWidget(cell_select, i, j)
                 self.cells_select[i].append(cell_select)
 
-        self.ui.visual_corner_select.set_size(BOARD_IMG_SIZE)
-        self.ui.visual_corner_select.set_inventory_hidden(True)
         self.ui.visual_corner_select.set_use_one_image(True)
 
     def dragEnterEvent(self, event):
@@ -70,9 +67,8 @@ class CreateDataset(QMainWindow):
         self.update()
 
     def load_image(self, img_path: str) -> None:
-        self.reader.set_image(img_path)
-        img = cv2.imread(img_path)
-        self.ui.visual_corner_select.set_images_by_splitter(img)
+        self.reader.get_board_splitter().set_image_getter(Photo(img_path))
+        self.ui.visual_corner_select.update_images()
 
         # Loading each predicted cell into selects
         self.reader.update()
@@ -99,7 +95,7 @@ class CreateDataset(QMainWindow):
                 self.cells_dataset.add_image(cell_img, figure, direction)
         self.cells_dataset.add_image_hash(self.images_paths[0])
         self.images_paths.pop(0)
-        self.cells_dataset.save(Paths.DATASET_PATH)
+        self.cells_dataset.save(paths.CELLS_DATASET_PATH)
         self.update()
 
     @pyqtSlot()
@@ -108,9 +104,8 @@ class CreateDataset(QMainWindow):
         self.update()
 
     @pyqtSlot(QVariant)
-    def on_corner_detector_changed(self, corner_detector_factory):
-        new_cd = corner_detector_factory()
-        self.reader.set(corner_detector=new_cd)
+    def on_splitter_changed(self, new_splitter: BoardSplitter):
+        self.reader.set_board_splitter(new_splitter)
         self.update()
 
     def update(self):

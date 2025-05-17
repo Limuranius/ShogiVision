@@ -17,10 +17,9 @@ class Skibidi(QFrame):
     def setup(self):
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.setLayout(self.verticalLayout)
-        self.imageLabel = ImageLabel(self)
+        self.imageLabel = ImageLabel(self, min_size=(100, 100))
         self.verticalLayout.addWidget(self.imageLabel)
         self.imageLabel.clicked.connect(self.on_img_clicked)
-        self.imageLabel.set_size((70, 70))
 
     def set_cell(self, figure: Figure, direction: Direction):
         self.__figure = figure

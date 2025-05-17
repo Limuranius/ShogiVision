@@ -7,10 +7,26 @@ from extra.utils import generate_random_image
 from extra.types import ImageNP
 
 
+ROTATIONS = [None, cv2.ROTATE_90_CLOCKWISE, cv2.ROTATE_180, cv2.ROTATE_90_COUNTERCLOCKWISE]
+
+
 class ImageGetter(ABC):
+    # Rotation that is applied to image
+    # One of: None (no rotation), cv2.ROTATE_90_CLOCKWISE, cv2.ROTATE_90_COUNTERCLOCKWISE, cv2.ROTATE_180
+    rotation: int | None = None
+
     @abstractmethod
-    def get_image(self) -> np.ndarray:
+    def get_image(self) -> ImageNP:
         pass
+
+    def set_rotation(self, rotation_code: int) -> :
+        self.rotation = rotation_code
+
+    def rotate_image(self, img: ImageNP):
+        if self.rotation is None:
+            return img
+        else:
+            return cv2.rotate(img, self.rotation)
 
 
 class Photo(ImageGetter):
@@ -27,8 +43,8 @@ class Photo(ImageGetter):
         if self.img is None:
             self.img = generate_random_image(500, 500, 3)
 
-    def get_image(self) -> np.ndarray:
-        return self.img.copy()
+    def get_image(self) -> ImageNP:
+        return self.rotate_image(self.img.copy())
 
     def __copy__(self):
         new_img = Photo(self.img.copy())
@@ -38,25 +54,29 @@ class Photo(ImageGetter):
 class Camera(ImageGetter):
     video: cv2.VideoCapture
 
-    def __init__(self, cam_id: int = 0):
+    def __init__(
+            self,
+            cam_id: int = 0,
+            width_height: tuple[int, int] = None,
+    ):
         self.video = cv2.VideoCapture(cam_id)
 
-        # width = 2560
-        # height = 1440
-        # self.video.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        # self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        if width_height is not None:
+            width, height = width_height
+            self.video.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+            self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
-    def get_image(self) -> np.ndarray:
+    def get_image(self) -> ImageNP:
         ret, frame = self.video.read()
         if ret:
-            # frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-            return frame
+            return self.rotate_image(frame)
         else:
             return generate_random_image(500, 500, 3)
 
 
 class Video(ImageGetter):
     video: cv2.VideoCapture
+    finished_playing: bool
     __path: str
 
     def __init__(self, video_path: str = ""):
@@ -67,7 +87,7 @@ class Video(ImageGetter):
     def get_image(self) -> ImageNP:
         ret, frame = self.video.read()
         if ret:
-            return frame
+            return self.rotate_image(frame)
         else:
             return generate_random_image(500, 500, 3)
 

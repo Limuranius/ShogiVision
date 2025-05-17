@@ -38,7 +38,7 @@ class Ui_MainWindow(object):
         self.pushButton_skip.setObjectName("pushButton_skip")
         self.verticalLayout_2.addWidget(self.pushButton_skip)
         self.horizontalLayout.addWidget(self.frame)
-        self.visual_corner_select = VisualCornerSelect(self.centralwidget)
+        self.visual_corner_select = DetectorsSelect(self.centralwidget)
         self.visual_corner_select.setObjectName("visual_corner_select")
         self.horizontalLayout.addWidget(self.visual_corner_select)
         self.frame_4 = QtWidgets.QFrame(self.centralwidget)
@@ -65,7 +65,7 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.pushButton_add.clicked.connect(MainWindow.on_add_to_dataset_clicked) # type: ignore
         self.pushButton_skip.clicked.connect(MainWindow.on_skip_clicked) # type: ignore
-        self.visual_corner_select.corner_detector_changed['QVariant'].connect(MainWindow.on_corner_detector_changed) # type: ignore
+        self.visual_corner_select.splitter_changed['QVariant'].connect(MainWindow.on_splitter_changed) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -74,4 +74,4 @@ class Ui_MainWindow(object):
         self.label.setText(_translate("MainWindow", "Loaded"))
         self.pushButton_skip.setText(_translate("MainWindow", "Skip"))
         self.pushButton_add.setText(_translate("MainWindow", "Add to dataset"))
-from GUI.components.VisualCornerSelect import VisualCornerSelect
+from GUI.widgets.DetectorsSelect import DetectorsSelect

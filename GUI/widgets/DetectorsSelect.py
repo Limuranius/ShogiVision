@@ -4,13 +4,23 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, QVariant, QTimer
 from PyQt5.QtWidgets import QWidget
 from config.config import GLOBAL_CONFIG
 import extra.utils
-from Elements import HardcodedCornerDetector, BoardSplitter, CoolCornerDetector, CornerDetector
-from Elements.ImageGetters import Photo
+from Elements import HardcodedCornerDetector, BoardSplitter, CornerDetector
 from GUI.UI.UI_DetectorsSelect import Ui_visualCornerSelect
 from GUI.widgets import combobox_values
+from extra import factories
 
 
 class DetectorsSelect(QWidget):
+    """
+    Widget with board splitter configuration
+    Contains:
+        Original image taken from __splitter's image getter
+        Cropped image of board with removed perspective (if __use_one_image set to False)
+        Combobox with corner detectors
+        Combobox with inventory detectors
+        Ticks "Show borders", "Show grid", "Show inventories"
+    """
+
     __record_corner_clicks: bool
     __splitter: BoardSplitter
 
@@ -30,10 +40,7 @@ class DetectorsSelect(QWidget):
         self.ui = Ui_visualCornerSelect()
         self.ui.setupUi(self)
         self.__record_corner_clicks = False
-        self.__splitter = BoardSplitter(
-            image_getter=Photo(),
-            corner_getter=CoolCornerDetector()
-        )
+        self.__splitter = factories.default_board_splitter()
 
         # Filling combo boxes
         cd_name, cd_values = combobox_values.corner_detector()

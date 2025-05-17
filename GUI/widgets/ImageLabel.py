@@ -14,10 +14,10 @@ class ImageLabel(QLabel):
     __pixmap: QPixmap
     __scaled_pixmap: QPixmap
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, min_size=(1, 1), **kwargs):
         super().__init__(*args, **kwargs)
         self.set_image(generate_random_image(500, 500, 3))
-        self.setMinimumSize(1, 1)
+        self.setMinimumSize(*min_size)
         self.setStyleSheet("background-color:black;")
         self.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
 

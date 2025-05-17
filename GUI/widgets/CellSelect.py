@@ -40,7 +40,7 @@ class CellSelect(QDialog):
                 img = cv2.resize(img, (CELL_IMG_SIZE, CELL_IMG_SIZE))
                 img_label.set_image(img)
 
-                def img_clicked_func(figure=figure, direction=direction):
+                def img_clicked_func(*args, figure=figure, direction=direction):
                     self.choice_clicked.emit(figure, direction)
                     self.close()
                 img_label.clicked.connect(img_clicked_func)
