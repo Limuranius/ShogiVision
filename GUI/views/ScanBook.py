@@ -10,11 +10,19 @@ from GUI.UI.UI_ScanBook import Ui_scan_book
 from GUI.widgets.BookPageRangeDialog import BookPageRangeDialog
 from extra import pdf_scan, factories
 from GUI.widgets.ProgressBarDialog import ProgressBarDialog
+from extra.types import Box
 
 
 class ScanBook(QWidget):
-    __data: list[tuple[int, list[Board]]]
+    # page number, boards on this page, boxes around boards on this page
+    __data: list[tuple[int, list[Board], list[Box]]]
+
+    # path to current pdf
+    __pdf_path: str
+
+    # current index
     __data_i: int
+
     __reader: ShogiBoardReader
 
     def __init__(self, *args, **kwargs):
@@ -32,14 +40,14 @@ class ScanBook(QWidget):
         """Previous page button clicked"""
         self.__data_i -= 1
         self.update_pagination()
-        self.update_boards_list()
+        self.update_pdf_page()
 
     @pyqtSlot()
     def on_next_clicked(self):
         """Next page button clicked"""
         self.__data_i += 1
         self.update_pagination()
-        self.update_boards_list()
+        self.update_pdf_page()
 
     @pyqtSlot(int)
     def on_page_number_changed(self, page_number: int):
@@ -47,16 +55,7 @@ class ScanBook(QWidget):
         self.__data_i = page_number - min_page
         self.update_pagination()
         if len(self.__data) != 0:
-            self.update_boards_list()
-
-    @pyqtSlot()
-    def on_board_changed(self):
-        """Changed selection of board in list"""
-        selected = self.ui.listWidget_pageBoards.selectedItems()
-        if len(selected) > 0:
-            item = selected[0]
-            board = item.data(Qt.UserRole)
-            self.ui.board_view.set_board(board)
+            self.update_pdf_page()
 
     @pyqtSlot(QtGui.QDragEnterEvent)
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
@@ -75,6 +74,19 @@ class ScanBook(QWidget):
         win.book_accepted.connect(self.load_pdf)
         win.exec()
 
+    def update_pdf_page(self):
+        pdf = pypdfium2.PdfDocument(self.__pdf_path)
+        page, boards, boxes = self.__data[self.__data_i]
+        img = pdf_scan.get_pdf_page_image(pdf, page - 1)
+
+        self.ui.label_pdf_image.set_image(img)
+        callbacks = []
+        for board in boards:
+            def set_board(board=board):
+                self.ui.board_view.set_board(board)
+            callbacks.append(set_board)
+        self.ui.label_pdf_image.set_clickable_boxes(list(zip(boxes, callbacks)))
+
     def update_pagination(self):
         self.ui.pushButton_next.setDisabled(False)
         self.ui.pushButton_previous.setDisabled(False)
@@ -91,19 +103,12 @@ class ScanBook(QWidget):
             if self.__data_i == len(self.__data) - 1:
                 self.ui.pushButton_next.setDisabled(True)
 
-    def update_boards_list(self):
-        self.ui.listWidget_pageBoards.clear()
-        page_number, page_boards = self.__data[self.__data_i]
-        for i, board in enumerate(page_boards):
-            item = QListWidgetItem(f"Board {i + 1}")
-            item.setData(Qt.UserRole, board)
-            self.ui.listWidget_pageBoards.addItem(item)
-
     def load_pdf(self, pdf_path: str, page_from: int, page_to: int):
         self.__data.clear()
 
         page_from -= 1
         page_to -= 1
+        self.__pdf_path = pdf_path
         pdf = pypdfium2.PdfDocument(pdf_path)
         total = page_to - page_from + 1
 
@@ -112,13 +117,14 @@ class ScanBook(QWidget):
             for page_number in range(page_from, page_to + 1):
                 page_img = pdf_scan.get_pdf_page_image(pdf, page_number)
                 boards_imgs = pdf_scan.extract_boards_images(page_img)
+                boards_boxes = pdf_scan.extract_boards_boxes(page_img)
                 boards = []
                 for board_img in boards_imgs:
                     self.__reader.get_board_splitter().set_image_getter(Photo(board_img))
                     self.__reader.update()
                     board = self.__reader.get_board()
                     boards.append(board)
-                data.append((page_number + 1, boards))
+                data.append((page_number + 1, boards, boards_boxes))
                 yield
             yield data
 
@@ -128,7 +134,7 @@ class ScanBook(QWidget):
             max_page = self.__data[-1][0]
             self.ui.spinBox_page_number.setMinimum(min_page)
             self.ui.spinBox_page_number.setMaximum(max_page)
-            self.update_boards_list()
+            self.update_pdf_page()
             self.update_pagination()
 
         pbar = ProgressBarDialog(

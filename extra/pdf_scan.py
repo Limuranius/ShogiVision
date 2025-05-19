@@ -52,7 +52,7 @@ def __is_board_image(img_mask: ImageNP) -> bool:
     return lines is not None and len(lines) > 10
 
 
-def __capture_surroundings(img: ImageNP, border_box: Box) -> ImageNP:
+def __capture_surroundings(border_box: Box) -> Box:
     x, y, w, h = border_box
     margin_left = int(w * 0.125)
     margin_right = int(w * 0.25)
@@ -63,21 +63,11 @@ def __capture_surroundings(img: ImageNP, border_box: Box) -> ImageNP:
     new_y = max(0, y - margin_up)
     new_w = w + margin_left + margin_right
     new_h = h + margin_up + margin_down
-    return img[new_y: new_y + new_h, new_x: new_x + new_w]
+    return new_x, new_y, new_w, new_h
 
 
 def __remove_border_pixels(image: ImageNP, width: int) -> ImageNP:
     return image[width: -width, width: -width]
-
-
-def extract_boards_images(img: ImageNP) -> list[ImageNP]:
-    """Returns all images of boards on img"""
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    mask = ((gray < 150) * 255).astype(np.uint8)
-    board_boxes = __extract_boards_borders(mask)
-    board_boxes.sort(key=lambda box: box[1])
-    board_images = [__capture_surroundings(img, box) for box in board_boxes]
-    return board_images
 
 
 def __extract_boards_borders(img_mask: ImageNP, x0=0, y0=0) -> list[Box]:
@@ -103,7 +93,26 @@ def __extract_boards_borders(img_mask: ImageNP, x0=0, y0=0) -> list[Box]:
     return boards_boxes
 
 
-def get_pdf_page_image(pdf: pypdfium2.PdfDocument, page_number: int):
+def extract_boards_boxes(img: ImageNP, surroundings=True) -> list[Box]:
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    mask = ((gray < 150) * 255).astype(np.uint8)
+    board_boxes = __extract_boards_borders(mask)
+    board_boxes.sort(key=lambda box: box[1])
+    if surroundings:
+        board_boxes = [__capture_surroundings(box) for box in board_boxes]
+    return board_boxes
+
+
+def extract_boards_images(img: ImageNP, surroundings=True) -> list[ImageNP]:
+    """Returns all images of boards on img"""
+    boxes = extract_boards_boxes(img, surroundings=surroundings)
+    board_images = []
+    for x, y, w, h in boxes:
+        board_images.append(img[y: y + h, x: x + w])
+    return board_images
+
+
+def get_pdf_page_image(pdf: pypdfium2.PdfDocument, page_number: int) -> ImageNP:
     page = pdf[page_number]
     image = page.render(scale=4).to_numpy()
     return image

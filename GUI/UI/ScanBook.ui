@@ -17,7 +17,7 @@
    <item>
     <widget class="QFrame" name="frame">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
@@ -40,10 +40,26 @@
        </widget>
       </item>
       <item>
-       <widget class="QListWidget" name="listWidget_pageBoards"/>
+       <widget class="InteractiveImageLabel" name="label_pdf_image">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>PDF Image</string>
+        </property>
+       </widget>
       </item>
-      <item>
+      <item alignment="Qt::AlignHCenter">
        <widget class="QFrame" name="frame_3">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
@@ -90,6 +106,12 @@
    </item>
    <item>
     <widget class="QFrame" name="frame_2">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -112,6 +134,11 @@
    <header>GUI/widgets/BoardView.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>InteractiveImageLabel</class>
+   <extends>QLabel</extends>
+   <header>GUI/widgets/InteractiveImageLabel.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
@@ -122,8 +149,8 @@
    <slot>on_previous_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>127</x>
-     <y>482</y>
+     <x>150</x>
+     <y>496</y>
     </hint>
     <hint type="destinationlabel">
      <x>133</x>
@@ -138,28 +165,12 @@
    <slot>on_next_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>482</y>
+     <x>261</x>
+     <y>496</y>
     </hint>
     <hint type="destinationlabel">
      <x>510</x>
      <y>-22</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>listWidget_pageBoards</sender>
-   <signal>itemSelectionChanged()</signal>
-   <receiver>scan_book</receiver>
-   <slot>on_board_changed()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>321</x>
-     <y>93</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>356</x>
-     <y>-13</y>
     </hint>
    </hints>
   </connection>
@@ -170,8 +181,8 @@
    <slot>on_page_number_changed(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>193</x>
-     <y>471</y>
+     <x>200</x>
+     <y>497</y>
     </hint>
     <hint type="destinationlabel">
      <x>13</x>
