@@ -122,6 +122,32 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_rotate">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Rotate</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../../img/Icons/rotate.png</normaloff>../../img/Icons/rotate.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>40</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
@@ -216,8 +242,8 @@
    <slot>on_pause_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>68</x>
-     <y>534</y>
+     <x>170</x>
+     <y>562</y>
     </hint>
     <hint type="destinationlabel">
      <x>9</x>
@@ -232,8 +258,8 @@
    <slot>on_restart_video_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>185</x>
-     <y>534</y>
+     <x>285</x>
+     <y>562</y>
     </hint>
     <hint type="destinationlabel">
      <x>6</x>
@@ -273,11 +299,28 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButton_rotate</sender>
+   <signal>clicked()</signal>
+   <receiver>scan_image</receiver>
+   <slot>on_rotate_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>355</x>
+     <y>539</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>358</x>
+     <y>580</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_pause_clicked()</slot>
   <slot>on_restart_video_clicked()</slot>
   <slot>on_settings_clicked()</slot>
   <slot>on_clear_memorizer_clicked()</slot>
+  <slot>on_rotate_clicked()</slot>
  </slots>
 </ui>

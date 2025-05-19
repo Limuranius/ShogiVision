@@ -22,6 +22,10 @@ class ImageGetter(ABC):
     def set_rotation(self, rotation_code: int) -> None:
         self.rotation = rotation_code
 
+    def rotate(self):
+        next_rotation = ROTATIONS[(ROTATIONS.index(self.rotation) + 1) % 4]
+        self.set_rotation(next_rotation)
+
     def rotate_image(self, img: ImageNP):
         if self.rotation is None:
             return img

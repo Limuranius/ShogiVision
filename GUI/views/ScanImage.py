@@ -125,6 +125,12 @@ class ScanImage(QWidget):
             image_getter.restart()
 
     @pyqtSlot()
+    def on_rotate_clicked(self):
+        image_getter = self.__worker.get_reader().get_board_splitter().get_image_getter()
+        image_getter.rotate()
+        self.__request_data()
+
+    @pyqtSlot()
     def on_settings_clicked(self):
         reader = self.__worker.get_reader()
         settings_win = Settings(copy.copy(reader))
@@ -178,6 +184,7 @@ class ScanImage(QWidget):
     def on_video_uploaded(self, video_path: str):
         splitter = self.__worker.get_reader().get_board_splitter()
         splitter.set_image_getter(Video(video_path))
+        self.__request_data()
 
     def start_alarm(self):
         pass
