@@ -50,7 +50,7 @@
      </widget>
     </item>
     <item>
-     <widget class="VisualCornerSelect" name="visual_corner_select" native="true"/>
+     <widget class="DetectorsSelect" name="visual_corner_select" native="true"/>
     </item>
     <item>
      <widget class="QFrame" name="frame_4">
@@ -94,12 +94,12 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>VisualCornerSelect</class>
+   <class>DetectorsSelect</class>
    <extends>QWidget</extends>
-   <header>GUI/components/VisualCornerSelect.h</header>
+   <header>GUI/widgets/DetectorsSelect.h</header>
    <container>1</container>
    <slots>
-    <signal>corner_detector_changed(QVariant)</signal>
+    <signal>splitter_changed(QVariant)</signal>
    </slots>
   </customwidget>
  </customwidgets>
@@ -112,8 +112,8 @@
    <slot>on_add_to_dataset_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>736</x>
-     <y>529</y>
+     <x>786</x>
+     <y>586</y>
     </hint>
     <hint type="destinationlabel">
      <x>800</x>
@@ -128,8 +128,8 @@
    <slot>on_skip_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>42</x>
-     <y>539</y>
+     <x>55</x>
+     <y>586</y>
     </hint>
     <hint type="destinationlabel">
      <x>4</x>
@@ -139,13 +139,13 @@
   </connection>
   <connection>
    <sender>visual_corner_select</sender>
-   <signal>corner_detector_changed(QVariant)</signal>
+   <signal>splitter_changed(QVariant)</signal>
    <receiver>MainWindow</receiver>
-   <slot>on_corner_detector_changed(QVariant)</slot>
+   <slot>on_splitter_changed(QVariant)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>589</x>
-     <y>21</y>
+     <x>678</x>
+     <y>27</y>
     </hint>
     <hint type="destinationlabel">
      <x>568</x>
@@ -157,6 +157,6 @@
  <slots>
   <slot>on_add_to_dataset_clicked()</slot>
   <slot>on_skip_clicked()</slot>
-  <slot>on_corner_detector_changed(QVariant)</slot>
+  <slot>on_splitter_changed(QVariant)</slot>
  </slots>
 </ui>
