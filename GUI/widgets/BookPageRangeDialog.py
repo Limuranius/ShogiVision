@@ -6,6 +6,11 @@ from GUI.UI.UI_BookPageRangeDialog import Ui_Dialog
 
 
 class BookPageRangeDialog(QDialog):
+    """
+    Dialog window that opens up when trying to load pdf
+    Has fields to specify range of pages that need to be loaded
+    """
+
     __pdf_path: str
 
     # Emitted when user accepts dialog window
@@ -27,16 +32,19 @@ class BookPageRangeDialog(QDialog):
 
     @pyqtSlot(int)
     def from_changed(self, value: int):
+        """When min page changed"""
         if value > self.ui.spinBox_to.value():
             self.ui.spinBox_to.setValue(value)
 
     @pyqtSlot(int)
     def to_changed(self, value: int):
+        """When max page changed"""
         if value < self.ui.spinBox_from.value():
             self.ui.spinBox_from.setValue(value)
 
     @pyqtSlot()
     def accept(self):
+        """OK button was clicked"""
         self.book_accepted.emit(
             self.__pdf_path,
             self.ui.spinBox_from.value(),

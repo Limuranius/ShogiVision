@@ -18,22 +18,24 @@ class DetectorsSelect(QWidget):
         Cropped image of board with removed perspective (if __use_one_image set to False)
         Combobox with corner detectors
         Combobox with inventory detectors
-        Ticks "Show borders", "Show grid", "Show inventories"
+        Checkboxes "Show borders", "Show grid", "Show inventories"
+
+    All splitter processes are done on main thread, since recognizer is not used here
     """
 
-    __record_corner_clicks: bool
-    __splitter: BoardSplitter
-
-    # if True then all information will be shown on one image
-    __use_one_image: bool = False
-
-    # Emits copy of new splitter when some parts of it change
+    # Signal. Emits copy of new splitter when some parts of it change
     splitter_changed = pyqtSignal(QVariant)
 
-    __label_disappear_timer: QTimer
-    __update_images_timer: QTimer
-
+    __splitter: BoardSplitter
     __clicked_corners: list[tuple[int, int]]
+    __record_corner_clicks: bool
+
+    # if True then all information will be shown on one image
+    # otherwise two images will be present: with and without perspective
+    __use_one_image: bool = False
+
+    __label_disappear_timer: QTimer  # Timer used to temporary show info text when manually selecting corners
+    __update_images_timer: QTimer  # Timer used to run update method that asynchronously runs splitter and updates images
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -64,6 +66,7 @@ class DetectorsSelect(QWidget):
 
     @pyqtSlot(QVariant)
     def on_corner_detector_changed(self, corner_detector: CornerDetector):
+        """Actions when corner detector was changed in combobox"""
         if isinstance(corner_detector, HardcodedCornerDetector):
             self.ui.pushButton_set_corners.setVisible(True)
         else:
@@ -74,6 +77,7 @@ class DetectorsSelect(QWidget):
 
     @pyqtSlot()
     def on_set_corners_clicked(self):
+        """'Set corners' button was clicked to select manual"""
         self.__clicked_corners.clear()
         self.__record_corner_clicks = True
 
@@ -87,11 +91,16 @@ class DetectorsSelect(QWidget):
 
     @pyqtSlot(QVariant)
     def on_inventory_detector_changed(self, inventory_detector):
+        """Actions when inventory detector was changed in combobox"""
         self.__splitter.set_inventory_detector(inventory_detector)
         self.splitter_changed.emit(QVariant(copy.copy(self.__splitter)))
 
     @pyqtSlot(int, int, int, int)
     def on_image_clicked(self, view_x: int, view_y: int, orig_x: int, orig_y: int) -> None:
+        """
+        Actions when full image was clicked
+        Used when manually selecting corners
+        """
         if self.__record_corner_clicks:
             self.__clicked_corners.append((orig_x, orig_y))
             if len(self.__clicked_corners) == 4:
@@ -136,22 +145,27 @@ class DetectorsSelect(QWidget):
         )
 
     def start_continuous_update(self):
+        """Starts continuous asynchronous update of images in this widget"""
         self.__update_images_timer.start(100)
 
     def stop_continuous_update(self):
+        """Stops continuous asynchronous update of images in this widget"""
         self.__update_images_timer.stop()
 
     @pyqtSlot(bool)
     def on_show_borders_switched(self, show_borders: bool):
+        """Actions when 'Show borders' checkbox was clicked"""
         GLOBAL_CONFIG.Visuals.show_borders = show_borders
         self.update_images()
 
     @pyqtSlot(bool)
     def on_show_grid_switched(self, show_grid: bool):
+        """Actions when 'Show grid' checkbox was clicked"""
         GLOBAL_CONFIG.Visuals.show_grid = show_grid
         self.update_images()
 
     @pyqtSlot(bool)
     def on_show_inventories_switched(self, show_inventories: bool):
+        """Actions when 'Show inventories' checkbox was clicked"""
         GLOBAL_CONFIG.Visuals.show_inventories = show_inventories
         self.update_images()

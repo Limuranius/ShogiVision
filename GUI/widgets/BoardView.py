@@ -8,6 +8,11 @@ from GUI.UI.UI_BoardView import Ui_boardView
 
 
 class BoardView(QWidget):
+    """
+    Widget that contains image of board stored in :__board
+    and buttons to copy SFEN or open this board in lishogi
+    """
+
     __board: Board
 
     def __init__(self, *args, **kwargs):
@@ -18,6 +23,7 @@ class BoardView(QWidget):
 
     @pyqtSlot()
     def on_to_lishogi_clicked(self):
+        """'To lishogi' button clicked"""
         sfen = self.__board.to_shogi_board().sfen()
         sfen = sfen.replace(" ", "_")
         url = f"https://lishogi.org/editor/{sfen}"
@@ -25,6 +31,7 @@ class BoardView(QWidget):
 
     @pyqtSlot()
     def on_copy_sfen_clicked(self):
+        """'Copy sfen' button clicked"""
         sfen = self.__board.to_shogi_board().sfen()
         pyperclip.copy(sfen)
 
@@ -33,5 +40,6 @@ class BoardView(QWidget):
         self.ui.board_image_label.set_image(board_image)
 
     def set_board(self, board: Board):
+        """Sets :board to show in this widget"""
         self.__board = board
         self.__show_board()

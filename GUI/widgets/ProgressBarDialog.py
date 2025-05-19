@@ -34,7 +34,31 @@ class Worker(QObject):
         self.__stop_flag = True
 
 
-class ProgressWorker(QDialog):
+class ProgressBarDialog(QDialog):
+    """
+    Dialog window with progress bar of some custom process that is run in separate thread
+
+    Example:
+
+        def pbar_func():
+            data = []
+            for i in range(420):
+                data.append(i)
+                yield
+            yield data
+
+        def on_finish(result_data):
+            print(result_data)
+
+        pbar = ProgressBarDialog(
+            total=total,
+            worker_func=pbar_func()
+        )
+        pbar.work_done.connect(on_finish)
+        pbar.setModal(True)
+        pbar.exec()
+    """
+
     __total: int
     work_done = pyqtSignal(object)  # sends result when the work is finished
     __worker_thread: QThread

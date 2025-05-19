@@ -51,6 +51,7 @@ class UploadFileDialog(QDialog):
 
     @pyqtSlot()
     def on_paste_clicked(self):
+        """Paste from clipboard button clicked"""
         match self.__file_type:
             case FileType.ONE_IMAGE:
                 clipboard_data = ImageGrab.grabclipboard()
@@ -79,6 +80,7 @@ class UploadFileDialog(QDialog):
 
     @pyqtSlot()
     def on_search_clicked(self):
+
         match self.__file_type:
             case FileType.ONE_IMAGE:
                 img_path = QFileDialog.getOpenFileName(self)[0]

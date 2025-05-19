@@ -9,7 +9,7 @@ from Elements.ImageGetters import Photo
 from GUI.UI.UI_ScanBook import Ui_scan_book
 from GUI.widgets.BookPageRangeDialog import BookPageRangeDialog
 from extra import pdf_scan, factories
-from GUI.widgets.ProgressWorker import ProgressWorker
+from GUI.widgets.ProgressBarDialog import ProgressBarDialog
 
 
 class ScanBook(QWidget):
@@ -131,7 +131,7 @@ class ScanBook(QWidget):
             self.update_boards_list()
             self.update_pagination()
 
-        pbar = ProgressWorker(
+        pbar = ProgressBarDialog(
             total=total,
             worker_func=pbar_func()
         )

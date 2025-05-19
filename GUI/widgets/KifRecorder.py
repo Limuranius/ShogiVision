@@ -5,6 +5,11 @@ import pyperclip
 
 
 class KifRecorder(QWidget):
+    """
+    Widget with text field to record KIF
+    and copy button to copy KIF
+    """
+
     __kif: str
 
     def __init__(self, *args, **kwargs):

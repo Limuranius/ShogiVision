@@ -3,10 +3,15 @@ from PyQt5.QtWidgets import QFrame
 from GUI.widgets.ImageLabel import ImageLabel
 from extra.types import Figure, Direction
 from extra.figures import get_figure_image
-from GUI.widgets.CellSelect import CellSelect
+from GUI.widgets.CellSelectDialog import CellSelectDialog
 
 
-class Skibidi(QFrame):
+class BoardCell(QFrame):
+    """
+    Widget that contains icon of figure.
+    Figure can be switched with click of mouse
+    """
+
     __figure: Figure
     __direction: Direction
 
@@ -37,7 +42,7 @@ class Skibidi(QFrame):
         self.imageLabel.set_image(img)
 
     def on_img_clicked(self):
-        cell_select_window = CellSelect()
+        cell_select_window = CellSelectDialog()
         cell_select_window.choice_clicked.connect(lambda f, d: self.set_cell(f, d))
         cell_select_window.exec()
 

@@ -7,7 +7,7 @@ from Elements import ShogiBoardReader, BoardSplitter
 from extra.figures import Figure, Direction
 from GUI.UI.create_dataset import Ui_MainWindow
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
-from GUI.widgets.Skibidi import Skibidi
+from GUI.widgets.BoardCell import BoardCell
 from ShogiNeuralNetwork.CellsDataset import CellsDataset
 from config import paths
 
@@ -15,7 +15,7 @@ from config import paths
 class CreateDataset(QMainWindow):
     images_paths: list[str]
     reader: ShogiBoardReader
-    cells_select = list[list[Skibidi]]
+    cells_select = list[list[BoardCell]]
     cells_dataset: CellsDataset
 
     def __init__(self):
@@ -36,7 +36,7 @@ class CreateDataset(QMainWindow):
         for i in range(9):
             self.cells_select.append([])
             for j in range(9):
-                cell_select = Skibidi(self.ui.frame_cell_grid)
+                cell_select = BoardCell(self.ui.frame_cell_grid)
                 cell_select.set_cell(Figure.EMPTY, Direction.NONE)
                 self.ui.grid.addWidget(cell_select, i, j)
                 self.cells_select[i].append(cell_select)

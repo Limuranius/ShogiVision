@@ -10,6 +10,11 @@ from config import paths
 
 
 class UploadFileButton(QPushButton):
+    """
+    Button with icon that opens dialog to upload files
+    When files are uploaded calls custom callback function
+    """
+
     __file_type: FileType
 
     # Custom function that is called after user uploaded file

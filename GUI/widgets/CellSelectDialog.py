@@ -10,7 +10,12 @@ from PyQt5.QtCore import pyqtSignal
 CELL_IMG_SIZE = 70
 
 
-class CellSelect(QDialog):
+class CellSelectDialog(QDialog):
+    """
+    Dialog window with selection of all possible figures and directions
+    """
+
+    # Signal. Emits selected figure and direction
     choice_clicked = pyqtSignal(Figure, Direction)
 
     def __init__(self, *args, **kwargs):
