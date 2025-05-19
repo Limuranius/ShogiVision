@@ -8,10 +8,8 @@ from collections import defaultdict
 
 import cv2
 import imagehash
-import keras
 import numpy as np
 import sklearn.model_selection
-import tensorflow as tf
 import tqdm
 from PIL import Image
 from sklearn.model_selection import train_test_split
@@ -184,11 +182,13 @@ class CellsDataset:
             augment: bool = True,
             to_grayscale: bool = True,
             shuffle: bool = True,
-    ) -> tf.data.Dataset:
+    ) -> "tf.data.Dataset":
         """
         Converts dataset to tf.data.Dataset pipeline with augmentation, batching, resizing and scaling
         Dataset has two outputs: "figure" and "direction"
         """
+        import tensorflow as tf
+        import keras
 
         # preprocessing images so that they are same size, float in range [0, 1] and grayscale if needed
         def process(img: np.ndarray):
