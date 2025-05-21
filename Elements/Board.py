@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import shogi
 
@@ -141,6 +143,35 @@ class Board:
         directions = [[Direction.NONE] * 9 for _ in range(9)]
         return Board(figures, directions)
 
+    @classmethod
+    def default_board(cls):
+        row_main = lambda: [Figure.LANCE, Figure.KNIGHT, Figure.SILVER, Figure.GOLD, Figure.KING, Figure.GOLD, Figure.SILVER, Figure.KNIGHT, Figure.LANCE]
+        row_pawn = lambda: [Figure.PAWN] * 9
+        row_empty = lambda: [Figure.EMPTY] * 9
+        figures = [
+            row_main(),
+            [Figure.EMPTY, Figure.ROOK, *[Figure.EMPTY] * 5, Figure.BISHOP, Figure.EMPTY],
+            row_pawn(),
+            row_empty(),
+            row_empty(),
+            row_empty(),
+            row_pawn(),
+            [Figure.EMPTY, Figure.BISHOP, *[Figure.EMPTY] * 5, Figure.ROOK, Figure.EMPTY],
+            row_main(),
+        ]
+        directions = [
+            [Direction.DOWN] * 9,
+            [Direction.NONE, Direction.DOWN, *[Direction.NONE] * 5, Direction.DOWN, Direction.NONE],
+            [Direction.DOWN] * 9,
+            [Direction.NONE] * 9,
+            [Direction.NONE] * 9,
+            [Direction.NONE] * 9,
+            [Direction.UP] * 9,
+            [Direction.NONE, Direction.UP, *[Direction.NONE] * 5, Direction.UP, Direction.NONE],
+            [Direction.UP] * 9,
+        ]
+        return Board(figures, directions)
+
     def get_inventory_lists(self) -> tuple[list[Figure], list[Figure]]:
         black = []
         white = []
@@ -160,4 +191,20 @@ class Board:
         url = f"https://lishogi.org/editor/{sfen}"
         return url
 
+    def __str__(self):
+        sfen = self.to_shogi_board().sfen()
+        return sfen
 
+    def copy(self):
+        return Board(
+            copy.deepcopy(self.figures),
+            copy.deepcopy(self.directions),
+            copy.deepcopy(self.inventory_black),
+            copy.deepcopy(self.inventory_white),
+        )
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)

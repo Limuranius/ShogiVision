@@ -3,7 +3,7 @@ from Elements.Board import Board
 
 
 class BoardCounter:
-    __memorize_count = 10  # How many frames of board are memorized and calculated statistics on
+    __memorize_count: int  # How many frames of board are memorized and calculated statistics on
 
     __board_frames: list[str]
     __board_counts: dict[str, int]
@@ -11,7 +11,8 @@ class BoardCounter:
 
     filled: bool  # Whether memorizer finished accumulating frames
 
-    def __init__(self):
+    def __init__(self, buffer_size: int):
+        self.__memorize_count = buffer_size
         self.__board_frames = []
         self.__board_counts = defaultdict(int)
         self.__board_from_str = dict()
