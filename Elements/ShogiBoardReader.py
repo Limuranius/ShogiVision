@@ -3,10 +3,9 @@ from collections import defaultdict
 from Elements.Recognizers import Recognizer
 from extra.figures import Figure
 from .BoardMemorizer import BoardMemorizer
-from .BoardMemorizer.BoardChangeStatus import BoardChangeStatus
 from .BoardSplitter import BoardSplitter
 from extra.types import ImageNP, FigureBoard, DirectionBoard, Inventory
-from .Board import Board
+from .Board import Board, BoardChangeStatus
 
 
 class ShogiBoardReader:
@@ -16,6 +15,8 @@ class ShogiBoardReader:
 
     __figures: FigureBoard
     __directions: DirectionBoard
+
+    confidence_score: float  # How confident last recognition was
 
     def __init__(
             self,
@@ -56,6 +57,7 @@ class ShogiBoardReader:
 
         self.__figures = figures
         self.__directions = directions
+        self.confidence_score = score
 
         if self.__memorizer is not None:
             self.__memorizer.update(self.__figures, self.__directions, score)

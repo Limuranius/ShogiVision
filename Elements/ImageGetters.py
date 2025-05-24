@@ -100,3 +100,6 @@ class Video(ImageGetter):
 
     def __copy__(self):
         return Video(self.__path)
+
+    def frames_count(self):
+        return int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
