@@ -66,16 +66,6 @@
           <widget class="DescriptiveComboBox" name="memorizer_select" native="true"/>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox_lower_moves_first">
-           <property name="text">
-            <string>Lower moves  first</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
           <widget class="QCheckBox" name="checkBox_siren">
            <property name="styleSheet">
             <string notr="true">color: rgb(224, 27, 36);</string>
@@ -166,22 +156,6 @@
     <hint type="destinationlabel">
      <x>2</x>
      <y>33</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>checkBox_lower_moves_first</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>settings</receiver>
-   <slot>on_lower_moves_first_switched(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>167</x>
-     <y>294</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-4</x>
-     <y>384</y>
     </hint>
    </hints>
   </connection>

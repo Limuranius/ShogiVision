@@ -52,10 +52,6 @@ class Ui_settings(object):
         self.memorizer_select = DescriptiveComboBox(self.groupBox_memorizer)
         self.memorizer_select.setObjectName("memorizer_select")
         self.verticalLayout.addWidget(self.memorizer_select)
-        self.checkBox_lower_moves_first = QtWidgets.QCheckBox(self.groupBox_memorizer)
-        self.checkBox_lower_moves_first.setChecked(True)
-        self.checkBox_lower_moves_first.setObjectName("checkBox_lower_moves_first")
-        self.verticalLayout.addWidget(self.checkBox_lower_moves_first)
         self.checkBox_siren = QtWidgets.QCheckBox(self.groupBox_memorizer)
         self.checkBox_siren.setStyleSheet("color: rgb(224, 27, 36);")
         self.checkBox_siren.setObjectName("checkBox_siren")
@@ -75,7 +71,6 @@ class Ui_settings(object):
         self.retranslateUi(settings)
         self.image_getter_select.element_changed['QVariant'].connect(settings.on_image_getter_changed) # type: ignore
         self.corner_and_inventory_select.splitter_changed['QVariant'].connect(settings.on_splitter_changed) # type: ignore
-        self.checkBox_lower_moves_first.clicked['bool'].connect(settings.on_lower_moves_first_switched) # type: ignore
         self.cam_id_select.element_changed['QVariant'].connect(settings.on_cam_id_changed) # type: ignore
         self.checkBox_siren.clicked['bool'].connect(settings.on_alarm_switched) # type: ignore
         self.pushButton_ok.clicked.connect(settings.on_ok_clicked) # type: ignore
@@ -89,7 +84,6 @@ class Ui_settings(object):
         self.groupBox.setTitle(_translate("settings", "Select image"))
         self.pushButton_upload_file.setText(_translate("settings", "Upload Files"))
         self.groupBox_memorizer.setTitle(_translate("settings", "Board memorizer"))
-        self.checkBox_lower_moves_first.setText(_translate("settings", "Lower moves  first"))
         self.checkBox_siren.setText(_translate("settings", "Use siren (LOUD)"))
         self.pushButton_ok.setText(_translate("settings", "OK"))
         self.pushButton_cancel.setText(_translate("settings", "Cancel"))

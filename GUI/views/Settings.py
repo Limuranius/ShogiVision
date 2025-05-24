@@ -88,10 +88,6 @@ class Settings(QDialog):
         pass
 
     @pyqtSlot(bool)
-    def on_lower_moves_first_switched(self, lower_moves_first: bool):
-        pass
-
-    @pyqtSlot(bool)
     def on_alarm_switched(self, use_alarm: bool):
         GLOBAL_CONFIG.Settings.use_siren = use_alarm
 
