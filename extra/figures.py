@@ -1,5 +1,8 @@
 from __future__ import annotations
 from enum import Enum
+
+import numpy as np
+
 from config import paths
 import os
 import cv2
@@ -47,7 +50,7 @@ class Figure(Enum):
         return promotion_table[self]
 
     def unpromoted(self) -> Figure:
-        return promotion_table[self]
+        return unpromotion_table[self]
 
     def is_promotable(self) -> bool:
         return self in promotion_table
@@ -58,6 +61,42 @@ class Figure(Enum):
     def is_droppable(self) -> bool:
         return self in droppable
 
+    def get_moves(self, direction: Direction) -> np.ndarray:
+        if direction == Direction.UP:
+            return figure_moves[self]
+        return inv_figure_moves[self]
+
+
+# Moves
+king_moves = {(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)}
+rook_moves = {
+    *[(dx, 0) for dx in range(-8, 9) if dx != 0],
+    *[(0, dy) for dy in range(-8, 9) if dy != 0]
+}
+bishop_moves = {
+    *[(d, d) for d in range(-8, 9) if d != 0],
+    *[(d, -d) for d in range(-8, 9) if d != 0],
+}
+gold_moves = {(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (0, 1)}
+figure_moves = {
+    Figure.PAWN: {(0, -1)},
+    Figure.KING: king_moves,
+    Figure.LANCE: {(0, -dy) for dy in range(1, 9)},
+    Figure.KNIGHT: {(-1, -2), (1, -2)},
+    Figure.SILVER: {(-1, -1), (0, -1), (1, -1), (-1, 1), (1, 1)},
+    Figure.GOLD: gold_moves,
+    Figure.BISHOP: bishop_moves,
+    Figure.ROOK: rook_moves,
+    Figure.PAWN_PROM: gold_moves,
+    Figure.LANCE_PROM: gold_moves,
+    Figure.KNIGHT_PROM: gold_moves,
+    Figure.SILVER_PROM: gold_moves,
+    Figure.BISHOP_PROM: king_moves | bishop_moves,
+    Figure.ROOK_PROM: king_moves | rook_moves,
+}
+inv_figure_moves = {fig: {(dx, -dy) for dx, dy in figure_moves[fig]} for fig in figure_moves}
+figure_moves = {fig: np.array(list(figure_moves[fig])) for fig in figure_moves}
+inv_figure_moves = {fig: np.array(list(inv_figure_moves[fig])) for fig in inv_figure_moves}
 
 promotion_table = {
     Figure.PAWN: Figure.PAWN_PROM,
@@ -66,6 +105,15 @@ promotion_table = {
     Figure.SILVER: Figure.SILVER_PROM,
     Figure.BISHOP: Figure.BISHOP_PROM,
     Figure.ROOK: Figure.ROOK_PROM,
+}
+
+unpromotion_table = {
+    Figure.PAWN_PROM: Figure.PAWN,
+    Figure.LANCE_PROM: Figure.LANCE,
+    Figure.KNIGHT_PROM: Figure.KNIGHT,
+    Figure.SILVER_PROM: Figure.SILVER,
+    Figure.BISHOP_PROM: Figure.BISHOP,
+    Figure.ROOK_PROM: Figure.ROOK,
 }
 
 droppable = {

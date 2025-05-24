@@ -1,6 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from extra.types import Figure
+
+from extra.figures import Figure, Direction
 
 JP_DIGITS = {
     1: "一",
@@ -17,52 +17,44 @@ JP_DIGITS = {
 USI_LETTERS = "abcdefghi"
 
 
-def notation_transform_lower_first(x: int, y: int):
-    return 10 - x, y
-
-
-def notation_transform_upper_first(x: int, y: int):
-    return x, 10 - y
-
-
-@dataclass(frozen=True)
 class Move:
-    # (x, y), 1 <= x, y <= 9
-    destination: tuple[int, int]
     figure: Figure
+    direction: Direction
+
+    # (x, y), 0 <= x, y <= 8
+    # Array coordinate system (origin in upper left corner)
+    array_destination: tuple[int, int]
+    array_origin: tuple[int, int] | None
 
     # (x, y), 1 <= x, y <= 9
-    origin: tuple[int, int] = None
+    # Board coordinate system (origin in upper right corner)
+    destination: tuple[int, int]
+    origin: tuple[int, int] | None
 
-    is_drop: bool = False
+    is_drop: bool
+    is_promotion: bool
 
-    is_promotion: bool = False
-
-    def apply_side_transformation(self, lower_moves_first: bool) -> Move:
-        """
-        Transforms move coordinates from screen coordinate system (origin in upper left corner)
-        to shogi coordinate system based on which side moved first
-
-        Parameters
-        ----------
-        lower_moves_first - whether player in lower part of board moved first
-        """
-        origin = None
-        if lower_moves_first:
-            if self.origin is not None:
-                origin = notation_transform_lower_first(*self.origin)
-            destination = notation_transform_lower_first(*self.destination)
+    def __init__(
+            self,
+            array_destination: tuple[int, int],  # (x, y)
+            figure: Figure,
+            direction: Direction,
+            array_origin: tuple[int, int] = None,  # (x, y)
+            is_drop: bool = False,
+            is_promotion: bool = False,
+    ):
+        self.array_destination = array_destination
+        self.destination = (9 - array_destination[0], array_destination[1] + 1)
+        self.array_origin = array_origin
+        if array_origin is not None:
+            self.origin = (9 - array_origin[0], array_origin[1] + 1)
         else:
-            if self.origin is not None:
-                origin = notation_transform_upper_first(*self.origin)
-            destination = notation_transform_upper_first(*self.destination)
-        return Move(
-            origin=origin,
-            destination=destination,
-            figure=self.figure,
-            is_drop=self.is_drop,
-            is_promotion=self.is_promotion
-        )
+            self.origin = None
+        self.figure = figure
+        self.direction = direction
+        self.is_drop = is_drop
+        self.is_promotion = is_promotion
+
 
     def to_usi(self) -> str:
         if self.is_drop:
@@ -111,3 +103,6 @@ class Move:
                 origin=origin_coords_str
             )
             return s
+
+    def __repr__(self):
+        return f"{self.array_origin}-{self.array_destination}|{self.figure} {self.direction}|{self.is_drop=} {self.is_promotion=}"

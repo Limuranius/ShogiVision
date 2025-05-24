@@ -1,11 +1,9 @@
-from extra.figures import Direction
+import shogi
+
 from extra.types import FigureBoard, DirectionBoard
 from .BoardCounter import BoardCounter
 from .Move import *
-from .board_utils import get_move
-from ..Board import Board
-import shogi
-from .BoardChangeStatus import BoardChangeStatus
+from ..Board import Board, BoardChangeStatus
 
 
 class BoardMemorizer:
@@ -49,7 +47,7 @@ class BoardMemorizer:
                     if self.lower_moves_first is None:
                         # need to infer side based on first move
                         x, y = move.origin
-                        direction = curr_board.directions[y-1][x-1]
+                        direction = curr_board.directions[y - 1][x - 1]
                         self.lower_moves_first = direction == Direction.UP
                     self.__move_history.append(move)
                     self.__board.push_usi(
