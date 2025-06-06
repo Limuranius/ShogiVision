@@ -9,11 +9,16 @@ class BoardMemorizerTree:
 
     update_status: BoardChangeStatus = BoardChangeStatus.VALID_MOVE
 
-    def __init__(self):
+    _patience: int
+    _patience_stack: list[Board]
+
+    def __init__(self, patience=100):
         self._tree = BoardsTree()
         self._tree.insert(Board.default_board())
+        self._patience = patience
+        self._patience_stack = []
 
-    def update(self, figures: FigureBoard, directions: DirectionBoard, certainty_score: float) -> None:
+    def update(self, figures: FigureBoard, directions: DirectionBoard, certainty_score: float = 1.0) -> None:
         """Updates board and stores status of update in 'update_status' variable"""
         new_board = Board(figures, directions)
         if certainty_score < 0.99:
@@ -22,6 +27,15 @@ class BoardMemorizerTree:
 
         status = self._tree.insert(new_board)
         self.update_status = status
+
+        if status in [BoardChangeStatus.VALID_MOVE, BoardChangeStatus.NOTHING_CHANGED]:
+            self._patience_stack = [new_board]
+        else:
+            self._patience_stack.append(new_board)
+            if len(self._patience_stack) > self._patience:
+                self.update_status = BoardChangeStatus.NEED_MANUAL
+                self._fill_missing_boards()
+
 
     def get_board(self) -> Board:
         return self._tree.get_last_boards()[0]
@@ -32,9 +46,9 @@ class BoardMemorizerTree:
 後手：
 手数----指手----消費時間--
 """
-
+        flip = self.get_moves()[0].direction == Direction.DOWN
         for i, move in enumerate(self.get_moves()):
-            signature = move.to_kif()
+            signature = move.to_kif(flip=flip)
             row_fmt = "{:>4} {}\n"
             s += row_fmt.format(i + 1, signature)
 
@@ -46,6 +60,44 @@ class BoardMemorizerTree:
     def get_moves(self) -> list[Move]:
         return self._tree.move_histories()[0]
 
-    def fill_missing_boards(self, target_board: Board, max_turns=1):
+    def _fill_missing_boards(self) -> None:
         """Bruteforces boards until they match with :target_board"""
-        raise NotImplementedError()
+        start_board = self.get_board()
+        for i, target_board in enumerate(self._patience_stack):
+            missing_boards = start_board.fill_missing_boards(target_board)
+            if missing_boards is None:
+                continue
+            else:  # found missing boards
+                if len(missing_boards) == 1:
+                    missing_boards = missing_boards[0]
+                else:
+                    for path_i, path in enumerate(missing_boards):
+                        path = [start_board] + path + [target_board]
+                        moves = []
+                        for ii in range(1, len(path)):
+                            path[ii - 1].show_difference(path[ii])
+                            moves.append(path[ii-1].get_move(path[ii]).to_usi())
+                        print(f"[{path_i}] {' '.join(moves)}")
+                    input_path_i = int(input("Enter path index: "))
+                    missing_boards = missing_boards[input_path_i]
+
+                tmp = self._patience_stack.copy()
+                tmp = tmp[i:]
+                for b in missing_boards + tmp:  # Trying to update with newly found boards and old boards from patience stack
+                    self.update(b.figures, b.directions)
+                return
+        # raise Exception("Could not find missing boards")
+
+    def provide_manual_info(self, moves: list[Move]) -> None:
+        board = self.get_board()
+
+        tmp = self._patience_stack.copy()
+
+        for move in moves:
+            board = board.make_move(move)
+            self.update(board.figures, board.directions)
+            print(self.update_status)
+        for b in tmp:  # Trying to update with newly found boards and old boards from patience stack
+            self.update(b.figures, b.directions)
+
+

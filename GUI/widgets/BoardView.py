@@ -24,7 +24,7 @@ class BoardView(QWidget):
     @pyqtSlot()
     def on_to_lishogi_clicked(self):
         """'To lishogi' button clicked"""
-        sfen = self.__board.to_shogi_board().sfen()
+        sfen = self.__board.to_sfen()
         sfen = sfen.replace(" ", "_")
         url = f"https://lishogi.org/editor/{sfen}"
         webbrowser.open(url)
@@ -32,7 +32,7 @@ class BoardView(QWidget):
     @pyqtSlot()
     def on_copy_sfen_clicked(self):
         """'Copy sfen' button clicked"""
-        sfen = self.__board.to_shogi_board().sfen()
+        sfen = self.__board.to_sfen()
         pyperclip.copy(sfen)
 
     def __show_board(self):

@@ -57,8 +57,19 @@ class BoardsTree:
                 if status == BoardChangeStatus.NOTHING_CHANGED:
                     return BoardChangeStatus.NOTHING_CHANGED  # board is already in tree, skipping
                 if status == BoardChangeStatus.VALID_MOVE:
+                    # Inserting board in tree
+                    board_copy = board.copy()
+
+                    # Setting turn based on parent board
+                    if node.board.turn is None:
+                        # parent turn is not set, inferring from made move
+                        move_side = node.board.get_move(board_copy).direction
+                        board_copy.turn = move_side.opposite()
+                    else:
+                        board_copy.turn = node.board.turn.opposite()
+
                     has_match = True
-                    new_node = BoardNode(board, parent=node)
+                    new_node = BoardNode(board_copy, parent=node)
                     node.add_child(new_node)
                     if i == len(self.nodes_by_turn) - 1:  # Need to create room for new turns
                         self.nodes_by_turn.append([])

@@ -23,6 +23,7 @@ class BoardChangeStatus(Enum):
     NOTHING_CHANGED = "Board did not change"
     ACCUMULATING_DATA = "Accumulating data"
     LOW_CERTAINTY = "Low certainty"
+    NEED_MANUAL = "Needs manual information"
 
 
 class Board:
@@ -258,8 +259,18 @@ class Board:
     def __hash__(self):
         return hash(str(self))
 
+    def cells_equal(self, other: Board) -> bool:
+        for i in range(9):
+            for j in range(9):
+                if self.figures[i][j] == other.figures[i][j] == Figure.EMPTY:
+                    continue
+                if self.figures[i][j] != other.figures[i][j] or self.directions[i][j] != other.directions[i][j]:
+                    return False
+        return True
+
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        # return hash(self) == hash(other)  # compares everything: board, inventory, turn
+        return self.cells_equal(other)  # compares only cells, without inventory and turn
 
     def get_changed_cells(self, new_board: Board) -> list[tuple[int, int]]:
         """Returns list of cells that changed from old_board to new_board"""
@@ -294,7 +305,7 @@ class Board:
                     and dropped_fig not in [Figure.EMPTY, Figure.KING]
                     and not dropped_fig.is_promoted()):
                 return Move(
-                    array_destination=(j, i),
+                    array_destination=(i, j),
                     is_drop=True,
                     figure=dropped_fig,
                     direction=new_board.directions[i][j]
@@ -391,8 +402,8 @@ class Board:
                 return None
 
             return Move(
-                array_destination=(x_destination, y_destination),
-                array_origin=(x_origin, y_origin),
+                array_destination=(y_destination, x_destination),
+                array_origin=(y_origin, x_origin),
                 is_promotion=is_promotion,
                 figure=moved_figure,
                 direction=moved_direction,
@@ -408,7 +419,6 @@ class Board:
         move = self.get_move(new_board)
         if move is None:
             return BoardChangeStatus.INVALID_MOVE
-        # return BoardChangeStatus.VALID_MOVE
         if BoardRules.check_move(self, move):
             return BoardChangeStatus.VALID_MOVE
         return BoardChangeStatus.ILLEGAL_MOVE
@@ -429,99 +439,153 @@ class Board:
             curr_board = next_board
         return True
 
-    def get_all_variants_bruteforce(self) -> Generator[Board, Any, None]:
-        """Brute forces all possible changes of 1-2 cells on board"""
-        all_cell_variants = [
-                                (f, d)
-                                for f in set(Figure) - {Figure.EMPTY}
-                                for d in [Direction.UP, Direction.DOWN]
-                            ] + [(Figure.EMPTY, Direction.NONE)]
-        for i1, j1, i2, j2, (f1, d1), (f2, d2) in itertools.product(
-                range(9), range(9),
-                range(9), range(9),
-                all_cell_variants,
-                all_cell_variants,
-        ):
-            new_board = self.copy()
-            new_board.figures[i1][j1] = f1
-            new_board.figures[i2][j2] = f2
-            new_board.directions[i1][j1] = d1
-            new_board.directions[i2][j2] = d2
-            yield new_board
+    def get_cell_moves(self, i: int, j: int) -> list[Move]:
+        """
+        Returns all possible moves for cell (i, j)
+        If cell is empty returns all drops on this cell
+        If cell is enemy's piece returns empty list
+        If cell is current player's piece returns all valid moves of this figure
+        """
+        moves = []
+        if self.figures[i][j] == Figure.EMPTY:
+            # Cell empty. Checking what figures we can drop here
+            inv = self.inventories[self.turn]
+            if inv is None:
+                figures_to_drop = [fig for fig in Figure if fig.is_droppable()]
+            else:
+                figures_to_drop = [fig for fig in inv if inv[fig] > 0]
+            for figure in figures_to_drop:
+                moves.append(Move(
+                    array_destination=(i, j),
+                    figure=figure,
+                    direction=self.turn,
+                    is_drop=True,
+                ))
+        else:
+            if self.directions[i][j] != self.turn:  # Enemy's figure
+                return []
+            figure = self.figures[i][j]
+            for dx, dy in figure.get_moves(self.turn):
+                new_i, new_j = i + dy, j + dx
+                if 0 <= new_i < 9 and 0 <= new_j < 9:  # in bounds
+                    not_friendly_fire = any([
+                        self.figures[i][j] == Figure.EMPTY,
+                        self.directions[new_i][new_j] == self.directions[i][j].opposite(),
+                    ])
+                    if not_friendly_fire:
+                        moves.append(Move(
+                            array_destination=(new_i, new_j),
+                            figure=figure,
+                            direction=self.turn,
+                            array_origin=(i, j),
+                            is_promotion=False
+                        ))
 
-    def get_all_variants_smart(self) -> list[Board]:
+                        # Also add move with promotion when possible
+                        if self.turn == Direction.UP:
+                            can_promote = i < 3 or new_i < 3  # on rows 0, 1, 2
+                        else:
+                            can_promote = i > 5 or new_i > 5  # on rows 6, 7, 8
+                        if can_promote and figure.is_promotable():
+                            moves.append(Move(
+                                array_destination=(new_i, new_j),
+                                figure=figure,
+                                direction=self.turn,
+                                array_origin=(i, j),
+                                is_promotion=True
+                            ))
+        return moves
+
+
+    def get_all_variants(self, subset: list[tuple[int, int]] = None) -> Generator[Board, Any, None]:
         """Returns list of all possible boards after 1 move"""
-        all_cell_variants = [
-                                (f, d)
-                                for f in set(Figure) - {Figure.EMPTY}
-                                for d in [Direction.UP, Direction.DOWN]
-                            ] + [(Figure.EMPTY, Direction.NONE)]
-        king_moves = set([
-            (dx, dy)
-            for dx in [-1, 0, 1]
-            for dy in [-1, 0, 1]
-            if (dx, dy) != (0, 0)
-        ])
-        rook_moves = {
-            *[(dx, 0) for dx in range(-8, 9) if dx != 0],
-            *[(0, dy) for dy in range(-8, 9) if dy != 0]
-        }
-        bishop_moves = {
-            *[(d, d) for d in range(-8, 9) if d != 0],
-            *[(d, -d) for d in range(-8, 9) if d != 0],
-        }
-        knight_moves = {
-            (dx, dy)
-            for dx in range(-2, 3)
-            for dy in range(-2, 3)
-            if abs(dx) + abs(dy) == 3
-        }
-        figure_moves = {
-            Figure.PAWN: rook_moves,
-            Figure.KING: king_moves,
-            Figure.LANCE: rook_moves,
-            Figure.KNIGHT: knight_moves,
-            Figure.SILVER: king_moves,
-            Figure.GOLD: king_moves,
-            Figure.BISHOP: bishop_moves,
-            Figure.ROOK: rook_moves,
-            Figure.PAWN_PROM: king_moves,
-            Figure.LANCE_PROM: king_moves,
-            Figure.KNIGHT_PROM: king_moves,
-            Figure.SILVER_PROM: king_moves,
-            Figure.BISHOP_PROM: king_moves | bishop_moves,
-            Figure.ROOK_PROM: king_moves | rook_moves,
-        }
+        if subset is None:
+            y = range(9)
+            x = range(9)
+        else:
+            y = [i[0] for i in subset]
+            x = [i[1] for i in subset]
+        if self.turn is None:
+            raise Exception("Turn side is unknown. Specify side because bruteforcing both sides is inefficient")
 
-        res = []
-        for i in range(9):
-            for j in range(9):
-                if self.figures[i][j] == Figure.EMPTY:
-                    # bruteforcing drop on this cell
-                    for f, d in all_cell_variants:
-                        new_board = self.copy()
-                        new_board.figures[i][j] = f
-                        new_board.directions[i][j] = d
-                        new_board.update()
-                        res.append(new_board)
-                else:
-                    # bruteforcing move from this cell
-                    f, d = self.figures[i][j], self.directions[i][j]
-                    for dx, dy in figure_moves[f]:
-                        new_i, new_j = i + dy, j + dx
-                        if 0 <= new_i < 9 and 0 <= new_j < 9:
-                            new_board = self.copy()
-                            new_board.figures[new_i][new_j] = f
-                            new_board.directions[new_i][new_j] = d
-                            new_board.figures[i][j] = Figure.EMPTY
-                            new_board.directions[i][j] = Direction.NONE
-                            new_board.update()
-                            res.append(new_board)
-        return res
+        for i in y:
+            for j in x:
+                moves = self.get_cell_moves(i, j)
+                for move in moves:
+                    new_board = self.make_move(move)
+                    yield new_board
+
 
     def continue_board_history(self, other_board: Board) -> Board:
         pass
 
     def make_move(self, move: Move) -> Board:
-        """"""
-        pass
+        """Makes move and returns new version of board"""
+        new_board = self.copy()
+        j, i = move.array_destination
+        new_board.directions[i][j] = move.direction
+        if self.turn is not None:
+            assert self.directions == move.direction
+        if move.is_drop:
+            new_board.figures[i][j] = move.figure
+            if self.inventories[self.turn] is not None:  # Check if figure in inventory
+                assert self.inventories[self.turn][move.figure] > 0
+                self.inventories[self.turn][move.figure] -= 1
+        else:
+            if self.figures[i][j] != Figure.EMPTY:  # If take
+                assert self.directions[i][j] != self.turn  # Check not friendly fire
+                if self.inventories[self.turn] is not None:
+                    self.inventories[self.turn][self.figures[i][j]] += 1  # Add taken figure to inventory
+            if move.is_promotion:
+                new_board.figures[i][j] = move.figure.promoted()
+            else:
+                new_board.figures[i][j] = move.figure
+            orig_j, orig_i = move.array_origin
+            new_board.figures[orig_i][orig_j] = Figure.EMPTY
+        if self.turn is not None:
+            new_board.turn = self.turn.opposite()
+        return new_board
+
+    def fill_missing_boards(self, target_board: Board) -> list[list[Board]] | None:
+        if len(self.get_changed_cells(target_board)) > 4:
+            # Too many cells changed. Either board was obstructed or too many moves were performed
+            return None
+        diff = self.get_changed_cells(target_board)
+
+        import tqdm
+        # self.show_difference(target_board)
+
+        pbar = tqdm.tqdm(desc="Filling missing boards")
+
+        results = []
+
+        # Trying depth 1
+        for inner_board in self.get_all_variants(subset=diff):
+            pbar.update(1)
+            if self.is_sequence_valid([inner_board, target_board]):
+                results.append([inner_board])
+
+        # Trying depth 2
+        for inner_board_1 in self.get_all_variants(subset=diff):
+            for inner_board_2 in inner_board_1.get_all_variants(subset=diff):
+                pbar.update(1)
+                if self.is_sequence_valid([inner_board_1, inner_board_2, target_board]):
+                    results.append([inner_board_1, inner_board_2])
+
+        if len(results) == 0:
+            pbar.set_description(pbar.desc + " Failed!")
+            pbar.close()
+            return None
+        else:
+            pbar.set_description(pbar.desc + f" Found {len(results)} possible paths")
+            pbar.close()
+            return results
+
+    def show_difference(self, other: Board):
+        import matplotlib.pyplot as plt
+        _, ax = plt.subplots(ncols=2)
+        ax[0].imshow(self.to_image())
+        ax[1].imshow(other.to_image())
+        diff = self.get_changed_cells(other)
+        plt.title(str(diff))
+        plt.show()

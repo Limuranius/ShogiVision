@@ -64,7 +64,7 @@ def _has_moves_after(move: Move) -> bool:
         figure = figure.promoted()
     all_moves = figure.get_moves(move.direction)
     all_pos = move.array_destination + all_moves
-    pos_in_bounds = ((0 < all_pos) & (all_pos <= 8)).all(axis=1)
+    pos_in_bounds = ((0 <= all_pos) & (all_pos <= 8)).all(axis=1)
     return pos_in_bounds.any()
 
 def _check_figure_move(board: Board, move: Move) -> bool:

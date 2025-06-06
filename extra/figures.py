@@ -62,6 +62,7 @@ class Figure(Enum):
         return self in droppable
 
     def get_moves(self, direction: Direction) -> np.ndarray:
+        # Get moves of figure in array of (dx, dy) pairs
         if direction == Direction.UP:
             return figure_moves[self]
         return inv_figure_moves[self]
@@ -131,6 +132,11 @@ class Direction(Enum):
     UP = "U"
     DOWN = "D"
     NONE = "."
+
+    def opposite(self):
+        if self == Direction.UP:
+            return Direction.DOWN
+        return Direction.UP
 
 
 FIGURE_ICONS_PATHS = {

@@ -91,7 +91,8 @@ class Video(ImageGetter):
     def get_image(self) -> ImageNP:
         ret, frame = self.video.read()
         if ret:
-            return self.rotate_image(frame)
+            self.frame = self.rotate_image(frame)
+            return self.frame
         else:
             return generate_random_image(500, 500, 3)
 
@@ -101,5 +102,11 @@ class Video(ImageGetter):
     def __copy__(self):
         return Video(self.__path)
 
-    def frames_count(self):
+    def frames_count(self) -> int:
         return int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    def fps(self) -> int:
+        return int(self.video.get(cv2.CAP_PROP_FPS))
+
+    def skip_frame(self) -> None:
+        self.video.grab()

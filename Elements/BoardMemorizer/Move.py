@@ -21,7 +21,7 @@ class Move:
     figure: Figure
     direction: Direction
 
-    # (x, y), 0 <= x, y <= 8
+    # (y, x), 0 <= x, y <= 8
     # Array coordinate system (origin in upper left corner)
     array_destination: tuple[int, int]
     array_origin: tuple[int, int] | None
@@ -36,10 +36,10 @@ class Move:
 
     def __init__(
             self,
-            array_destination: tuple[int, int],  # (x, y)
+            array_destination: tuple[int, int],  # (y, x)
             figure: Figure,
             direction: Direction,
-            array_origin: tuple[int, int] = None,  # (x, y)
+            array_origin: tuple[int, int] = None,  # (y, x)
             is_drop: bool = False,
             is_promotion: bool = False,
     ):
@@ -75,14 +75,26 @@ class Move:
                 y_dest_chr=USI_LETTERS[self.destination[1] - 1],
             )
 
-    def to_kif(self) -> str:
+    @classmethod
+    def from_coords(
+            cls,
+            board,
+            start: tuple[int, int],  # (y, x)
+            end: tuple[int, int],  # (y, x)
+    ) -> Move:
+        figure = board.figures[start[0]][start[1]]
+        direction = board.directions[start[0]][start[1]]
+        return Move(end, figure, direction, start)
+
+
+    def to_kif(self, flip=False) -> str:
         """
         Returns kif signature of move
         """
 
         dest_coords_str = "{x}{y_jp}".format(
-            x=self.destination[0],
-            y_jp=JP_DIGITS[self.destination[1]]
+            x=self.destination[0] if not flip else 10 - self.destination[0],
+            y_jp=JP_DIGITS[self.destination[1] if not flip else 10 - self.destination[1]]
         )
         if self.is_drop:
             s = "{dest}{fig_jp}打".format(
@@ -92,8 +104,8 @@ class Move:
             return s
         else:
             origin_coords_str = "{x}{y}".format(
-                x=self.origin[0],
-                y=self.origin[1]
+                x=self.origin[0] if not flip else 10 - self.origin[0],
+                y=self.origin[1] if not flip else 10 - self.origin[1]
             )
             prom_str = "成" if self.is_promotion else ""
             s = "{dest}{fig_jp}{prom}({origin})".format(
