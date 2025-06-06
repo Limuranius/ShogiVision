@@ -8,7 +8,8 @@ def corner_detector():
         (
             "Neural Network",
             "Searches for board position using neural network\nUse it if you're unsure what to choose",
-            Elements.YOLOSegmentationCornerDetector()
+            # Elements.YOLOSegmentationCornerDetector(),
+            Elements.YOLOONNX(),
         ),
         (
             "Edge detection",

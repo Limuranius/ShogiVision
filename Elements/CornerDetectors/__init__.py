@@ -3,4 +3,5 @@ from .HardcodedCornerDetector import HardcodedCornerDetector
 from .HSVThresholdCornerDetector import HSVThresholdCornerDetector
 from .CoolCornerDetector import CoolCornerDetector
 from .BookCornerDetector import BookCornerDetector
-from .YOLOSegmentationCornerDetector import YOLOSegmentationCornerDetector
+# from .YOLOSegmentationCornerDetector import YOLOSegmentationCornerDetector
+from .YOLOONNX import YOLOONNX

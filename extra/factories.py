@@ -1,18 +1,20 @@
 from Elements import *
+from Elements.CornerDetectors.YOLOSegmentationCornerDetector import YOLOSegmentationCornerDetector
 from Elements.ImageGetters import Photo
 from config import paths, GLOBAL_CONFIG
 
 
 def default_recognizer() -> Recognizers.Recognizer:
-    return RecognizerYOLO(
-        figure_model_path=paths.FIGURE_CLASSIFICATION_YOLO_MODEL_PATH,
-        direction_model_path=paths.DIRECTION_CLASSIFICATION_YOLO_MODEL_PATH,
-    )
-    # return RecognizerONNX(paths.MIXED_MODEL_ONNX_PATH)
+    return RecognizerONNX(paths.MIXED_MODEL_ONNX_PATH)
+    # return RecognizerYOLO(
+    #     figure_model_path=paths.FIGURE_CLASSIFICATION_YOLO_MODEL_PATH,
+    #     direction_model_path=paths.DIRECTION_CLASSIFICATION_YOLO_MODEL_PATH,
+    # )
 
 
 def default_corner_detector():
     return YOLOSegmentationCornerDetector()
+    # return YOLOONNX()
 
 
 def default_board_splitter():
