@@ -14,7 +14,13 @@ class BoardMemorizerTree:
 
     def __init__(self, patience=100):
         self._tree = BoardsTree()
-        self._tree.insert(Board.default_board())
+
+        # Inserting two sides of board since we don't know who goes first
+        default_board_up = Board.default_board()
+        default_board_down = Board.default_board()
+        default_board_down.turn = Direction.DOWN
+        self._tree.nodes_by_turn = [default_board_up, default_board_down]
+
         self._patience = patience
         self._patience_stack = []
 

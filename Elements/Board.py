@@ -32,7 +32,7 @@ class Board:
     inventory_black: Inventory | None
     inventory_white: Inventory | None
     inventories: dict[Direction, Inventory | None]
-    turn: Direction | None  # UP or DOWN. If None then side will be picked based on which piece moved
+    turn: Direction  # Which side has the move
 
     def __init__(
             self,
@@ -40,7 +40,7 @@ class Board:
             directions: DirectionBoard,
             inventory_black: Inventory = None,
             inventory_white: Inventory = None,
-            turn: Direction = None,
+            turn: Direction = Direction.UP,
     ):
         self.figures = figures
         self.directions = directions
@@ -213,7 +213,7 @@ class Board:
 
         # Side to sfen
         sfen += " "
-        if self.turn is None or self.turn == Direction.UP:
+        if self.turn == Direction.UP:
             sfen += "b"
         else:
             sfen += "w"
@@ -497,17 +497,17 @@ class Board:
         return moves
 
 
-    def get_all_variants(self, subset: list[tuple[int, int]] = None) -> Generator[Board, Any, None]:
-        """Returns list of all possible boards after 1 move"""
+    def next_boards(self, subset: list[tuple[int, int]] = None) -> Generator[Board, Any, None]:
+        """
+        Yields all possible boards after 1 move
+        :subset specifies certain cells to be checked to reduce number of moves
+        """
         if subset is None:
             y = range(9)
             x = range(9)
         else:
             y = [i[0] for i in subset]
             x = [i[1] for i in subset]
-        if self.turn is None:
-            raise Exception("Turn side is unknown. Specify side because bruteforcing both sides is inefficient")
-
         for i in y:
             for j in x:
                 moves = self.get_cell_moves(i, j)
@@ -524,8 +524,7 @@ class Board:
         new_board = self.copy()
         j, i = move.array_destination
         new_board.directions[i][j] = move.direction
-        if self.turn is not None:
-            assert self.directions == move.direction
+        assert self.turn == move.direction  # is right side to move?
         if move.is_drop:
             new_board.figures[i][j] = move.figure
             if self.inventories[self.turn] is not None:  # Check if figure in inventory
@@ -542,8 +541,7 @@ class Board:
                 new_board.figures[i][j] = move.figure
             orig_j, orig_i = move.array_origin
             new_board.figures[orig_i][orig_j] = Figure.EMPTY
-        if self.turn is not None:
-            new_board.turn = self.turn.opposite()
+        new_board.turn = self.turn.opposite()
         return new_board
 
     def fill_missing_boards(self, target_board: Board) -> list[list[Board]] | None:
@@ -560,14 +558,14 @@ class Board:
         results = []
 
         # Trying depth 1
-        for inner_board in self.get_all_variants(subset=diff):
+        for inner_board in self.next_boards(subset=diff):
             pbar.update(1)
             if self.is_sequence_valid([inner_board, target_board]):
                 results.append([inner_board])
 
         # Trying depth 2
-        for inner_board_1 in self.get_all_variants(subset=diff):
-            for inner_board_2 in inner_board_1.get_all_variants(subset=diff):
+        for inner_board_1 in self.next_boards(subset=diff):
+            for inner_board_2 in inner_board_1.next_boards(subset=diff):
                 pbar.update(1)
                 if self.is_sequence_valid([inner_board_1, inner_board_2, target_board]):
                     results.append([inner_board_1, inner_board_2])
