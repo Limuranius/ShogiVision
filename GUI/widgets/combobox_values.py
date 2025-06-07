@@ -74,7 +74,7 @@ def image_getter():
         (
             "Video",
             "Recorded video of board",
-            Elements.ImageGetters.Video()
+            Elements.ImageGetters.VideoFile()
         ),
         (
             "Camera",

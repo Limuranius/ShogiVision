@@ -2,7 +2,7 @@ import copy
 
 from PyQt5.QtCore import pyqtSlot, QVariant, pyqtSignal
 from PyQt5.QtWidgets import QDialog
-from Elements.ImageGetters import Camera, Photo, Video
+from Elements.ImageGetters import Camera, Photo, VideoFile
 from GUI.UI.UI_Settings import Ui_settings
 from Elements import ImageGetters, BoardSplitter, BoardMemorizer, ShogiBoardReader
 from GUI.widgets import combobox_values
@@ -52,7 +52,7 @@ class Settings(QDialog):
             self.ui.pushButton_upload_file.set_file_type(FileType.ONE_IMAGE)
             self.ui.pushButton_upload_file.connect_function(self.on_photo_input)
             self.ui.corner_and_inventory_select.stop_continuous_update()
-        if isinstance(image_getter, ImageGetters.Video):
+        if isinstance(image_getter, ImageGetters.VideoFile):
             self.ui.pushButton_upload_file.setVisible(True)
             self.ui.pushButton_upload_file.set_file_type(FileType.VIDEO)
             self.ui.pushButton_upload_file.connect_function(self.on_video_input)
@@ -72,7 +72,7 @@ class Settings(QDialog):
     @pyqtSlot(QVariant)
     def on_video_input(self, video_path: str):
         splitter = self.__reader.get_board_splitter()
-        splitter.set_image_getter(Video(video_path))
+        splitter.set_image_getter(VideoFile(video_path))
 
     @pyqtSlot(QVariant)
     def on_cam_id_changed(self, camera: Camera):

@@ -6,7 +6,7 @@ from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
 from Elements.Board import Board, BoardChangeStatus
-from Elements.ImageGetters import Photo, Video, Camera
+from Elements.ImageGetters import Photo, VideoFile, Camera
 from GUI.UI.UI_ScanImage import Ui_scan_image
 from Elements import ShogiBoardReader
 from GUI.views.Settings import Settings
@@ -121,7 +121,7 @@ class ScanImage(QWidget):
     @pyqtSlot()
     def on_restart_video_clicked(self):
         image_getter = self.__worker.get_reader().get_board_splitter().get_image_getter()
-        if isinstance(image_getter, Video):
+        if isinstance(image_getter, VideoFile):
             image_getter.restart()
 
     @pyqtSlot()
@@ -158,7 +158,7 @@ class ScanImage(QWidget):
                 self.ui.pushButton_upload.setVisible(True)
                 self.ui.pushButton_upload.set_file_type(FileType.ONE_IMAGE)
                 self.ui.pushButton_upload.connect_function(self.on_photo_uploaded)
-            case Video():
+            case VideoFile():
                 self.start_stream()
                 self.ui.pushButton_restart_video.setVisible(True)
                 self.ui.pushButton_pause.setVisible(True)
@@ -183,7 +183,7 @@ class ScanImage(QWidget):
 
     def on_video_uploaded(self, video_path: str):
         splitter = self.__worker.get_reader().get_board_splitter()
-        splitter.set_image_getter(Video(video_path))
+        splitter.set_image_getter(VideoFile(video_path))
         self.__request_data()
 
     def start_alarm(self):

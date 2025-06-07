@@ -78,7 +78,27 @@ class Camera(ImageGetter):
             return generate_random_image(500, 500, 3)
 
 
-class Video(ImageGetter):
+class Video(ImageGetter, ABC):
+    """Interface for video"""
+
+    @abstractmethod
+    def restart(self) -> None:
+        pass
+
+    @abstractmethod
+    def frames_count(self) -> int:
+        pass
+
+    @abstractmethod
+    def fps(self) -> int:
+        pass
+
+    @abstractmethod
+    def skip_frame(self) -> None:
+        pass
+
+
+class VideoFile(Video):
     video: cv2.VideoCapture
     finished_playing: bool
     __path: str
@@ -100,7 +120,7 @@ class Video(ImageGetter):
         self.video = cv2.VideoCapture(self.__path)
 
     def __copy__(self):
-        return Video(self.__path)
+        return VideoFile(self.__path)
 
     def frames_count(self) -> int:
         return int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -110,3 +130,32 @@ class Video(ImageGetter):
 
     def skip_frame(self) -> None:
         self.video.grab()
+
+
+class VideoArray(Video):
+    frames: list[ImageNP]  # Array of video frames
+    __frame_i: int  # current frame index
+
+    def __init__(self, frames: list[ImageNP]):
+        self.frames = frames
+        self.__frame_i = 0
+
+    def get_image(self) -> ImageNP:
+        if self.__frame_i < len(self.frames):
+            frame = self.frames[self.__frame_i]
+            self.__frame_i += 1
+            return frame
+        else:
+            return generate_random_image(500, 500, 3)
+
+    def restart(self) -> None:
+        self.__frame_i = 0
+
+    def frames_count(self) -> int:
+        return len(self.frames)
+
+    def fps(self) -> int:
+        return 60
+
+    def skip_frame(self) -> None:
+        self.__frame_i += 1

@@ -12,7 +12,7 @@ from matplotlib import animation
 from Elements import BoardChangeStatus, Board
 from Elements.BoardMemorizer.BoardMemorizerTree import BoardMemorizerTree
 from Elements.Board.Move import Move
-from Elements.ImageGetters import Video
+from Elements.ImageGetters import VideoFile
 from extra import factories
 from extra.figures import Direction
 from extra.types import FilePath
@@ -43,7 +43,7 @@ def animate(imgs):
     plt.show()
 
 
-def get_frames_from_video(video: Video, idx: list[int]) -> list[np.ndarray]:
+def get_frames_from_video(video: VideoFile, idx: list[int]) -> list[np.ndarray]:
     video = video.__copy__()
     idx = sorted(idx)
     video.restart()
@@ -69,7 +69,7 @@ def smart_convert(
         output_path = pathlib.Path(video_path).stem + "_processed.pkl"
 
     reader = factories.camera_reader()
-    video = Video(video_path)
+    video = VideoFile(video_path)
     reader.get_board_splitter().set_image_getter(video)
     fps = video.fps()
     idle_step = fps // 2
@@ -157,7 +157,7 @@ def boards_to_kif(
         if memorizer.update_status == BoardChangeStatus.NEED_MANUAL:
             memorizer._tree.show()
             frames = get_frames_from_video(
-                Video(video_path),
+                VideoFile(video_path),
                 frames_i[boards.index(board) - 100: boards.index(board) - 70]
             )
             animate(frames)
