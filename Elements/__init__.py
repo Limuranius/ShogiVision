@@ -5,4 +5,4 @@ from . import ImageGetters
 from .CornerDetectors import *
 from .Recognizers import *
 from .InventoryDetectors import *
-from .Board import BoardChangeStatus
+from .Board.Board import BoardChangeStatus, Board

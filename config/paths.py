@@ -28,3 +28,5 @@ ICONS_DIR = IMGS_DIR / "Icons"
 
 SOUNDS_DIR_PATH = ROOT_DIR / "sounds"
 ALARM_PATH = SOUNDS_DIR_PATH / "alarm.wav"
+
+LOGS_DIR = ROOT_DIR / "logs"

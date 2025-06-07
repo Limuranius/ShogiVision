@@ -2,8 +2,8 @@ import shogi
 
 from extra.types import FigureBoard, DirectionBoard
 from .BoardCounter import BoardCounter
-from .Move import *
-from ..Board import Board, BoardChangeStatus
+from Elements.Board.Move import *
+from Elements.Board.Board import Board, BoardChangeStatus
 
 
 class BoardMemorizer:

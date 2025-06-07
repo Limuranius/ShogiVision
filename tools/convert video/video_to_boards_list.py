@@ -2,7 +2,6 @@ import os
 import pathlib
 import pickle
 from collections import defaultdict
-from os import PathLike
 
 import cv2
 import matplotlib.pyplot as plt
@@ -10,9 +9,9 @@ import numpy as np
 import tqdm
 from matplotlib import animation
 
-from Elements.Board import BoardChangeStatus, Board
+from Elements import BoardChangeStatus, Board
 from Elements.BoardMemorizer.BoardMemorizerTree import BoardMemorizerTree
-from Elements.BoardMemorizer.Move import Move
+from Elements.Board.Move import Move
 from Elements.ImageGetters import Video
 from extra import factories
 from extra.figures import Direction
@@ -141,7 +140,9 @@ def boards_to_kif(
 
     print(len(results))
 
-    # save_boards([res[0] for res in results], "boards_logs")
+    # save_boards([res["board"] for res in results], paths.LOGS_DIR / "boards_logs")
+    # subset = [0, 12, 21, 39, 63, 74, 91, 112, 125, 136]
+    # results = [results[i] for i in subset]
 
     memorizer = BoardMemorizerTree()
 
@@ -178,8 +179,8 @@ def boards_to_kif(
             # 2838
 
         pbar.set_description(f"Turns: {n_turns}, Nodes: {memorizer._tree.nodes_count()}")
-    memorizer._tree.show()
     print(memorizer.get_kif())
+    memorizer._tree.show()
 
 
 def save_boards(boards: list[Board], folder_name: str):

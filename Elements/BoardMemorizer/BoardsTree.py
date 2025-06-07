@@ -6,7 +6,8 @@ import cv2
 
 from Elements import BoardChangeStatus
 from Elements.Board import Board
-from Elements.BoardMemorizer.Move import Move
+from Elements.Board.Move import Move
+from config import paths
 
 
 class BoardNode:
@@ -58,13 +59,14 @@ class BoardsTree:
                     return BoardChangeStatus.NOTHING_CHANGED  # board is already in tree, skipping
                 if status == BoardChangeStatus.VALID_MOVE:
                     # Inserting board in tree
-                    board_copy = board.copy()
-                    has_match = True
-                    new_node = BoardNode(board_copy, parent=node)
+                    move = node.board.get_move(board)
+                    new_board = node.board.make_move(move)
+                    new_node = BoardNode(new_board, parent=node)
                     node.add_child(new_node)
                     if i == len(self.nodes_by_turn) - 1:  # Need to create room for new turns
                         self.nodes_by_turn.append([])
                     self.nodes_by_turn[i + 1].append(new_node)
+                    has_match = True
         if has_match:
             return BoardChangeStatus.VALID_MOVE
         return BoardChangeStatus.INVALID_MOVE
@@ -130,4 +132,4 @@ class BoardsTree:
             )
 
         # Show the network
-        net.show("graph_with_images.html", notebook=False)
+        net.show(paths.LOGS_DIR / "graph_with_images.html", notebook=False)

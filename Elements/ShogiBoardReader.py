@@ -5,7 +5,7 @@ from extra.figures import Figure
 from .BoardMemorizer import BoardMemorizer
 from .BoardSplitter import BoardSplitter
 from extra.types import ImageNP, FigureBoard, DirectionBoard, Inventory
-from .Board import Board, BoardChangeStatus
+from .Board.Board import Board, BoardChangeStatus
 
 
 class ShogiBoardReader:

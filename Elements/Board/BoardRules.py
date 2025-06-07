@@ -7,7 +7,7 @@ import numpy as np
 if TYPE_CHECKING:
     from Elements.Board import Board
 
-from Elements.BoardMemorizer.Move import Move
+from Elements.Board.Move import Move
 from extra.figures import Figure, Direction
 
 
@@ -41,7 +41,7 @@ def _check_drop(board: Board, move: Move) -> bool:
     Check if figure was in inventory
     Check if figure is droppable (not king, or promoted figures)
     """
-    j, i = move.array_destination
+    i, j = move.array_destination
     cell_free = board.figures[i][j] == Figure.EMPTY
 
     turn = move.direction
@@ -73,8 +73,8 @@ def _check_figure_move(board: Board, move: Move) -> bool:
     Check destination in list of figure moves
     Check promotion on enemy territory
     """
-    dest_j, dest_i = move.array_destination
-    orig_j, orig_i = move.array_origin
+    dest_i, dest_j = move.array_destination
+    orig_i, orig_j = move.array_origin
 
     # Not friendly fire
     is_take = board.figures[dest_i][dest_j] != Figure.EMPTY

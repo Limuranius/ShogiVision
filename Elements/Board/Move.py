@@ -44,10 +44,10 @@ class Move:
             is_promotion: bool = False,
     ):
         self.array_destination = array_destination
-        self.destination = (9 - array_destination[0], array_destination[1] + 1)
+        self.destination = (9 - array_destination[1], array_destination[0] + 1)
         self.array_origin = array_origin
         if array_origin is not None:
-            self.origin = (9 - array_origin[0], array_origin[1] + 1)
+            self.origin = (9 - array_origin[1], array_origin[0] + 1)
         else:
             self.origin = None
         self.figure = figure

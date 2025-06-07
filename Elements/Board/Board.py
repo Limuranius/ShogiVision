@@ -2,17 +2,14 @@ from __future__ import annotations
 
 import collections
 import copy
-import itertools
 from enum import Enum
 from typing import Any, Generator
 
-import cv2
-import numpy as np
-
-from Elements.BoardMemorizer import BoardRules
-from Elements.BoardMemorizer.Move import Move
+from Elements.Board import BoardRules
+from Elements.Board.BoardDrawer import BoardDrawer
+from Elements.Board.Move import Move
 from extra import utils
-from extra.figures import Figure, Direction, get_figure_image
+from extra.figures import Figure, Direction
 from extra.types import FigureBoard, DirectionBoard, ImageNP, Inventory
 
 
@@ -63,62 +60,6 @@ class Board:
             s += "".join([cell.value for cell in dir_row])
             s += "\n"
         return s
-
-    def to_image(self) -> ImageNP:
-        BOARD_SIZE = 1000
-        FIGURE_SIZE = BOARD_SIZE // 9
-        INVENTORY_FIGURE_SIZE = FIGURE_SIZE
-        INVENTORY_MARGIN = 50
-
-        board_img = np.full((BOARD_SIZE, BOARD_SIZE, 3), [255, 255, 255], dtype=np.uint8)
-
-        # Adding figures icons
-        figure_step = BOARD_SIZE // 9
-        for i in range(9):
-            for j in range(9):
-                y = figure_step * i
-                x = figure_step * j
-                figure = self.figures[i][j]
-                direction = self.directions[i][j]
-                if figure != Figure.EMPTY:
-                    figure_icon = get_figure_image(figure, direction)
-                    figure_icon = cv2.resize(figure_icon, (FIGURE_SIZE, FIGURE_SIZE))
-                    utils.overlay_image_on_image(board_img, figure_icon, x, y)
-
-        # Drawing grid
-        grid_step = BOARD_SIZE // 9
-        for i in range(10):
-            y = i * grid_step
-            cv2.line(board_img, (0, y), (BOARD_SIZE, y), 0, thickness=5)
-        for j in range(10):
-            x = j * grid_step
-            cv2.line(board_img, (x, 0), (x, BOARD_SIZE), 0, thickness=5)
-
-        # Drawing inventories
-        black_inv, white_inv = self.get_inventory_lists()
-        margin_line = np.full((INVENTORY_MARGIN, BOARD_SIZE, 3), [255, 255, 255], dtype=np.uint8)
-        black_inv_line = np.full((INVENTORY_FIGURE_SIZE, BOARD_SIZE, 3), [255, 255, 255], dtype=np.uint8)
-        white_inv_line = np.full((INVENTORY_FIGURE_SIZE, BOARD_SIZE, 3), [255, 255, 255], dtype=np.uint8)
-        for i, black_inv_fig in enumerate(black_inv):
-            figure_icon = get_figure_image(black_inv_fig, Direction.UP)
-            figure_icon = cv2.resize(figure_icon, (INVENTORY_FIGURE_SIZE, INVENTORY_FIGURE_SIZE))
-            utils.overlay_image_on_image(black_inv_line, figure_icon,
-                                         x=BOARD_SIZE - INVENTORY_FIGURE_SIZE * (i + 1),
-                                         y=0)
-        for i, white_inv_fig in enumerate(white_inv):
-            figure_icon = get_figure_image(white_inv_fig, Direction.DOWN)
-            figure_icon = cv2.resize(figure_icon, (INVENTORY_FIGURE_SIZE, INVENTORY_FIGURE_SIZE))
-            utils.overlay_image_on_image(white_inv_line, figure_icon,
-                                         x=INVENTORY_FIGURE_SIZE * i,
-                                         y=0)
-        board_img = np.array([
-            *white_inv_line,
-            *margin_line,
-            *board_img,
-            *margin_line,
-            *black_inv_line
-        ])
-        return board_img
 
     @classmethod
     def get_empty_board(cls):
@@ -465,11 +406,11 @@ class Board:
             if self.directions[i][j] != self.turn:  # Enemy's figure
                 return []
             figure = self.figures[i][j]
-            for dx, dy in figure.get_moves(self.turn):
+            for dy, dx in figure.get_moves(self.turn):
                 new_i, new_j = i + dy, j + dx
                 if 0 <= new_i < 9 and 0 <= new_j < 9:  # in bounds
                     not_friendly_fire = any([
-                        self.figures[i][j] == Figure.EMPTY,
+                        self.figures[new_i][new_j] == Figure.EMPTY,
                         self.directions[new_i][new_j] == self.directions[i][j].opposite(),
                     ])
                     if not_friendly_fire:
@@ -496,25 +437,18 @@ class Board:
                             ))
         return moves
 
-
     def next_boards(self, subset: list[tuple[int, int]] = None) -> Generator[Board, Any, None]:
         """
         Yields all possible boards after 1 move
         :subset specifies certain cells to be checked to reduce number of moves
         """
         if subset is None:
-            y = range(9)
-            x = range(9)
-        else:
-            y = [i[0] for i in subset]
-            x = [i[1] for i in subset]
-        for i in y:
-            for j in x:
-                moves = self.get_cell_moves(i, j)
-                for move in moves:
-                    new_board = self.make_move(move)
-                    yield new_board
-
+            subset = [(i, j) for i in range(9) for j in range(9)]
+        for i, j in subset:
+            moves = self.get_cell_moves(i, j)
+            for move in moves:
+                new_board = self.make_move(move)
+                yield new_board
 
     def continue_board_history(self, other_board: Board) -> Board:
         pass
@@ -522,37 +456,37 @@ class Board:
     def make_move(self, move: Move) -> Board:
         """Makes move and returns new version of board"""
         new_board = self.copy()
-        j, i = move.array_destination
+        i, j = move.array_destination
         new_board.directions[i][j] = move.direction
         assert self.turn == move.direction  # is right side to move?
         if move.is_drop:
             new_board.figures[i][j] = move.figure
-            if self.inventories[self.turn] is not None:  # Check if figure in inventory
-                assert self.inventories[self.turn][move.figure] > 0
-                self.inventories[self.turn][move.figure] -= 1
+            if new_board.inventories[self.turn] is not None:  # Check if figure in inventory
+                assert new_board.inventories[self.turn][move.figure] > 0
+                new_board.inventories[self.turn][move.figure] -= 1
         else:
             if self.figures[i][j] != Figure.EMPTY:  # If take
                 assert self.directions[i][j] != self.turn  # Check not friendly fire
-                if self.inventories[self.turn] is not None:
-                    self.inventories[self.turn][self.figures[i][j]] += 1  # Add taken figure to inventory
+                if new_board.inventories[self.turn] is not None:
+                    fig = self.figures[i][j]
+                    fig_unprom = fig.unpromoted() if fig.is_promoted() else fig
+                    new_board.inventories[self.turn][fig_unprom] += 1  # Add taken figure to inventory
             if move.is_promotion:
                 new_board.figures[i][j] = move.figure.promoted()
             else:
                 new_board.figures[i][j] = move.figure
-            orig_j, orig_i = move.array_origin
+            orig_i, orig_j = move.array_origin
             new_board.figures[orig_i][orig_j] = Figure.EMPTY
         new_board.turn = self.turn.opposite()
         return new_board
 
     def fill_missing_boards(self, target_board: Board) -> list[list[Board]] | None:
-        if len(self.get_changed_cells(target_board)) > 4:
+        diff = self.get_changed_cells(target_board)
+        if len(diff) > 4 or len(diff) == 0:
             # Too many cells changed. Either board was obstructed or too many moves were performed
             return None
-        diff = self.get_changed_cells(target_board)
 
         import tqdm
-        # self.show_difference(target_board)
-
         pbar = tqdm.tqdm(desc="Filling missing boards")
 
         results = []
@@ -560,14 +494,14 @@ class Board:
         # Trying depth 1
         for inner_board in self.next_boards(subset=diff):
             pbar.update(1)
-            if self.is_sequence_valid([inner_board, target_board]):
+            if self.is_sequence_valid([inner_board, target_board], allow_repeats=False):
                 results.append([inner_board])
 
         # Trying depth 2
         for inner_board_1 in self.next_boards(subset=diff):
             for inner_board_2 in inner_board_1.next_boards(subset=diff):
                 pbar.update(1)
-                if self.is_sequence_valid([inner_board_1, inner_board_2, target_board]):
+                if self.is_sequence_valid([inner_board_1, inner_board_2, target_board], allow_repeats=False):
                     results.append([inner_board_1, inner_board_2])
 
         if len(results) == 0:
@@ -586,4 +520,16 @@ class Board:
         ax[1].imshow(other.to_image())
         diff = self.get_changed_cells(other)
         plt.title(str(diff))
+        plt.show()
+
+    def to_image(self, moves: list[Move] = None) -> ImageNP:
+        drawer = BoardDrawer(self)
+        if moves is not None:
+            drawer.add_moves(moves)
+        return drawer.to_image()
+
+    def show_moves(self, moves: list[Move]) -> None:
+        img = self.to_image(moves)
+        import matplotlib.pyplot as plt
+        plt.imshow(img)
         plt.show()

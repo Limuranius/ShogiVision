@@ -62,7 +62,7 @@ class Figure(Enum):
         return self in droppable
 
     def get_moves(self, direction: Direction) -> np.ndarray:
-        # Get moves of figure in array of (dx, dy) pairs
+        # Get moves of figure in array of (dy, dx) pairs
         if direction == Direction.UP:
             return figure_moves[self]
         return inv_figure_moves[self]
@@ -71,20 +71,20 @@ class Figure(Enum):
 # Moves
 king_moves = {(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)}
 rook_moves = {
-    *[(dx, 0) for dx in range(-8, 9) if dx != 0],
-    *[(0, dy) for dy in range(-8, 9) if dy != 0]
+    *[(0, dx) for dx in range(-8, 9) if dx != 0],
+    *[(dy, 0) for dy in range(-8, 9) if dy != 0]
 }
 bishop_moves = {
     *[(d, d) for d in range(-8, 9) if d != 0],
     *[(d, -d) for d in range(-8, 9) if d != 0],
 }
-gold_moves = {(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (0, 1)}
+gold_moves = {(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0)}
 figure_moves = {
-    Figure.PAWN: {(0, -1)},
+    Figure.PAWN: {(-1, 0)},
     Figure.KING: king_moves,
-    Figure.LANCE: {(0, -dy) for dy in range(1, 9)},
-    Figure.KNIGHT: {(-1, -2), (1, -2)},
-    Figure.SILVER: {(-1, -1), (0, -1), (1, -1), (-1, 1), (1, 1)},
+    Figure.LANCE: {(-dy, 0) for dy in range(1, 9)},
+    Figure.KNIGHT: {(-2, -1), (-2, 1)},
+    Figure.SILVER: {(-1, -1), (-1, 0), (1, -1), (-1, 1), (1, 1)},
     Figure.GOLD: gold_moves,
     Figure.BISHOP: bishop_moves,
     Figure.ROOK: rook_moves,
@@ -95,7 +95,7 @@ figure_moves = {
     Figure.BISHOP_PROM: king_moves | bishop_moves,
     Figure.ROOK_PROM: king_moves | rook_moves,
 }
-inv_figure_moves = {fig: {(dx, -dy) for dx, dy in figure_moves[fig]} for fig in figure_moves}
+inv_figure_moves = {fig: {(-dy, dx) for dy, dx in figure_moves[fig]} for fig in figure_moves}
 figure_moves = {fig: np.array(list(figure_moves[fig])) for fig in figure_moves}
 inv_figure_moves = {fig: np.array(list(inv_figure_moves[fig])) for fig in inv_figure_moves}
 

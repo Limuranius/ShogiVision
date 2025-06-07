@@ -1,6 +1,6 @@
 from extra.types import FigureBoard, DirectionBoard
-from .Move import *
-from ..Board import Board, BoardChangeStatus
+from Elements.Board.Move import *
+from ..Board.Board import Board, BoardChangeStatus
 
 
 class BoardMemorizerGreedy:

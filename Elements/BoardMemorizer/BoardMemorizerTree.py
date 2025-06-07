@@ -1,7 +1,7 @@
 from extra.types import FigureBoard, DirectionBoard
-from .Move import *
-from ..Board import Board, BoardChangeStatus
-from .BoardsTree import BoardsTree
+from Elements.Board.Move import *
+from ..Board.Board import Board, BoardChangeStatus
+from .BoardsTree import BoardsTree, BoardNode
 
 
 class BoardMemorizerTree:
@@ -19,20 +19,27 @@ class BoardMemorizerTree:
         default_board_up = Board.default_board()
         default_board_down = Board.default_board()
         default_board_down.turn = Direction.DOWN
-        self._tree.nodes_by_turn = [default_board_up, default_board_down]
+        self._tree.nodes_by_turn = [[BoardNode(default_board_up), BoardNode(default_board_down)]]
 
         self._patience = patience
         self._patience_stack = []
 
-    def update(self, figures: FigureBoard, directions: DirectionBoard, certainty_score: float = 1.0) -> None:
+    def update(self, figures: FigureBoard, directions: DirectionBoard, certainty_score: float = 1.0, show=False) -> None:
         """Updates board and stores status of update in 'update_status' variable"""
         new_board = Board(figures, directions)
+
         if certainty_score < 0.99:
             self.update_status = BoardChangeStatus.LOW_CERTAINTY
             return
 
         status = self._tree.insert(new_board)
         self.update_status = status
+
+        if show:
+            import matplotlib.pyplot as plt
+            plt.imshow(new_board.to_image())
+            print(status)
+            plt.show()
 
         if status in [BoardChangeStatus.VALID_MOVE, BoardChangeStatus.NOTHING_CHANGED]:
             self._patience_stack = [new_board]
@@ -41,12 +48,18 @@ class BoardMemorizerTree:
             if len(self._patience_stack) > self._patience:
                 self.update_status = BoardChangeStatus.NEED_MANUAL
                 self._fill_missing_boards()
+        # print(self.update_status)
 
 
     def get_board(self) -> Board:
         return self._tree.get_last_boards()[0]
 
     def get_kif(self) -> str:
+        for _ in range(10):  # Adding last boards
+            if len(self._patience_stack) > 0:
+                self._fill_missing_boards()
+            else:
+                break
         s = """手合割：平手
 先手：
 後手：
@@ -81,9 +94,10 @@ class BoardMemorizerTree:
                         path = [start_board] + path + [target_board]
                         moves = []
                         for ii in range(1, len(path)):
-                            path[ii - 1].show_difference(path[ii])
-                            moves.append(path[ii-1].get_move(path[ii]).to_usi())
-                        print(f"[{path_i}] {' '.join(moves)}")
+                            moves.append(path[ii-1].get_move(path[ii]))
+                        start_board.show_moves(moves)
+                        print(f"[{path_i}] {' '.join([m.to_usi() for m in moves])}")
+                    start_board.show_difference(target_board)
                     input_path_i = int(input("Enter path index: "))
                     missing_boards = missing_boards[input_path_i]
 
@@ -92,6 +106,7 @@ class BoardMemorizerTree:
                 for b in missing_boards + tmp:  # Trying to update with newly found boards and old boards from patience stack
                     self.update(b.figures, b.directions)
                 return
+        print("FAILED TO FIND MISSING BOARDS")
         # raise Exception("Could not find missing boards")
 
     def provide_manual_info(self, moves: list[Move]) -> None:
