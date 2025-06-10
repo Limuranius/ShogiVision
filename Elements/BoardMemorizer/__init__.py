@@ -1,1 +1,2 @@
 from .BoardMemorizer import BoardMemorizer
+from .BoardMemorizerTree import BoardMemorizerTree

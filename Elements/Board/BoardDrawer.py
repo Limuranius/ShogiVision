@@ -87,6 +87,8 @@ class BoardDrawer:
         if white_inv is None:
             white_inv = dict()
         for i, (black_inv_fig, count) in enumerate(black_inv.items()):
+            if count == 0:
+                continue
             x = self.board_size - self.inventory_figure_size * (i + 1)
             y = 0
             figure_icon = get_figure_image(black_inv_fig, Direction.UP)
@@ -102,6 +104,8 @@ class BoardDrawer:
                         cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4,
                         lineType=cv2.LINE_AA)
         for i, (white_inv_fig, count) in enumerate(white_inv.items()):
+            if count == 0:
+                continue
             x = self.inventory_figure_size * i
             y = 0
             figure_icon = get_figure_image(white_inv_fig, Direction.DOWN)

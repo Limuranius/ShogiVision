@@ -1,5 +1,5 @@
 from collections import defaultdict
-from Elements.Board import Board
+from Elements.Board.Board import Board
 
 
 class BoardCounter:

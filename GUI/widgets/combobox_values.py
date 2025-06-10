@@ -59,7 +59,8 @@ def memorizer():
         (
             "Memorizer",
             "Use memorizer",
-            Elements.BoardMemorizer()
+            # Elements.BoardMemorizer(),
+            Elements.BoardMemorizerTree(),
         ),
     ]
 

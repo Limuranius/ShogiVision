@@ -3,7 +3,7 @@ import pyperclip
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget
 
-from Elements.Board import Board
+from Elements import Board
 from GUI.UI.UI_BoardView import Ui_boardView
 
 

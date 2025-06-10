@@ -5,7 +5,7 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
-from Elements.Board import Board, BoardChangeStatus
+from Elements import Board, BoardChangeStatus
 from Elements.ImageGetters import Photo, VideoFile, Camera
 from GUI.UI.UI_ScanImage import Ui_scan_image
 from Elements import ShogiBoardReader

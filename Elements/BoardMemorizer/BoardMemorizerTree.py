@@ -12,7 +12,8 @@ class BoardMemorizerTree:
     _patience: int
     _patience_stack: list[Board]
 
-    def __init__(self, patience=100):
+
+    def __init__(self, patience=None):
         self._tree = BoardsTree()
 
         # Inserting two sides of board since we don't know who goes first
@@ -41,33 +42,34 @@ class BoardMemorizerTree:
             print(status)
             plt.show()
 
-        if status in [BoardChangeStatus.VALID_MOVE, BoardChangeStatus.NOTHING_CHANGED]:
-            self._patience_stack = [new_board]
-        else:
-            self._patience_stack.append(new_board)
-            if len(self._patience_stack) > self._patience:
-                self.update_status = BoardChangeStatus.NEED_MANUAL
-                self._fill_missing_boards()
-        # print(self.update_status)
+        if self._patience is not None:
+            if status in [BoardChangeStatus.VALID_MOVE, BoardChangeStatus.NOTHING_CHANGED]:
+                self._patience_stack = [new_board]
+            else:
+                self._patience_stack.append(new_board)
+                if len(self._patience_stack) > self._patience:
+                    self.update_status = BoardChangeStatus.NEED_MANUAL
+                    self._fill_missing_boards()
 
 
     def get_board(self) -> Board:
         return self._tree.get_last_boards()[0]
 
     def get_kif(self) -> str:
-        for _ in range(10):  # Adding last boards
-            if len(self._patience_stack) > 0:
-                self._fill_missing_boards()
-            else:
-                break
+        if self._patience is not None:
+            for _ in range(10):  # Adding last boards
+                if len(self._patience_stack) > 0:
+                    self._fill_missing_boards()
+                else:
+                    break
         s = """手合割：平手
 先手：
 後手：
 手数----指手----消費時間--
 """
-        flip = self.get_moves()[0].direction == Direction.DOWN
+        moves = self.get_moves()
         for i, move in enumerate(self.get_moves()):
-            signature = move.to_kif(flip=flip)
+            signature = move.to_kif(flip=moves[0].direction == Direction.DOWN)
             row_fmt = "{:>4} {}\n"
             s += row_fmt.format(i + 1, signature)
 

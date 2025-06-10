@@ -1,6 +1,6 @@
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 from Elements import *
-from Elements.Board import Board
+from Elements import Board
 from config import GLOBAL_CONFIG
 from extra.types import ImageNP
 from extra import factories

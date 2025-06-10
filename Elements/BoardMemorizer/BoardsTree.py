@@ -4,8 +4,7 @@ import itertools
 
 import cv2
 
-from Elements import BoardChangeStatus
-from Elements.Board import Board
+from Elements.Board.Board import Board, BoardChangeStatus
 from Elements.Board.Move import Move
 from config import paths
 

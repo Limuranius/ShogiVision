@@ -43,7 +43,7 @@ class BoardMemorizer:
                 self.__boards_counter.update(new_board)
                 new_curr_board = self.__boards_counter.get_max_board()
                 if curr_board != new_curr_board:
-                    move = get_move(curr_board, new_curr_board)
+                    move = curr_board.get_move(new_curr_board)
                     if self.lower_moves_first is None:
                         # need to infer side based on first move
                         x, y = move.origin
@@ -66,23 +66,13 @@ class BoardMemorizer:
 手数----指手----消費時間--
 """
 
-        for i, move in enumerate(self.__move_history):
-            signature = move.apply_side_transformation(self.lower_moves_first).to_kif()
+        moves =  self.get_moves()
+        for i, move in enumerate(self.get_moves()):
+            signature = move.to_kif(flip=moves[0].direction == Direction.DOWN)
             row_fmt = "{:>4} {}\n"
             s += row_fmt.format(i + 1, signature)
 
         return s
-
-    def __remake_board(self):
-        self.__board = shogi.Board()
-        for move in self.__move_history:
-            self.__board.push_usi(
-                move.apply_side_transformation(self.lower_moves_first).to_usi()
-            )
-
-    def set_side(self, lower_moves_first: bool):
-        self.lower_moves_first = lower_moves_first
-        self.__remake_board()
 
     def __get_change_status(self, new_board: Board) -> BoardChangeStatus:
         if not self.__boards_counter.filled:
@@ -90,10 +80,7 @@ class BoardMemorizer:
         curr_board = self.__boards_counter.get_max_board()
         if new_board == curr_board:
             return BoardChangeStatus.NOTHING_CHANGED
-        move = get_move(
-            curr_board,
-            new_board
-        )
+        move = curr_board.get_move(new_board)
         if move is None:
             return BoardChangeStatus.INVALID_MOVE
         if self.lower_moves_first is None:  # Don't know side yet
