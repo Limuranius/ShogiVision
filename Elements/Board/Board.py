@@ -413,7 +413,18 @@ class Board:
                         self.figures[new_i][new_j] == Figure.EMPTY,
                         self.directions[new_i][new_j] == self.directions[i][j].opposite(),
                     ])
-                    if not_friendly_fire:
+                    obstructed = False  # If path to cell is obstructed by other figures
+                    if figure != Figure.KNIGHT:
+                        dy_sign = dy // abs(dy) if dy != 0 else 0
+                        dx_sign = dx // abs(dx) if dx != 0 else 0
+                        tmp_i, tmp_j = new_i - dy_sign, new_j - dx_sign
+                        while (tmp_i, tmp_j) != (i, j):
+                            if self.figures[tmp_i][tmp_j] != Figure.EMPTY:
+                                obstructed = True
+                            tmp_i -= dy_sign
+                            tmp_j -= dx_sign
+
+                    if not_friendly_fire and not obstructed:
                         moves.append(Move(
                             array_destination=(new_i, new_j),
                             figure=figure,
@@ -464,6 +475,8 @@ class Board:
             if new_board.inventories[self.turn] is not None:  # Check if figure in inventory
                 assert new_board.inventories[self.turn][move.figure] > 0
                 new_board.inventories[self.turn][move.figure] -= 1
+                if new_board.inventories[self.turn][move.figure] == 0:
+                    del new_board.inventories[self.turn][move.figure]
         else:
             if self.figures[i][j] != Figure.EMPTY:  # If take
                 assert self.directions[i][j] != self.turn  # Check not friendly fire

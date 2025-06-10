@@ -79,27 +79,43 @@ class BoardDrawer:
     def __build_inventory_images(self) -> tuple[ImageNP, ImageNP]:
         # Drawing inventories
 
-        black_inv, white_inv = self.board.get_inventory_lists()
         black_inv_line = np.full((self.inventory_figure_size, self.board_size, 3), [255, 255, 255], dtype=np.uint8)
         white_inv_line = np.full((self.inventory_figure_size, self.board_size, 3), [255, 255, 255], dtype=np.uint8)
-        for i, black_inv_fig in enumerate(black_inv):
+        black_inv, white_inv = self.board.inventory_black, self.board.inventory_white
+        if black_inv is None:
+            black_inv = dict()
+        if white_inv is None:
+            white_inv = dict()
+        for i, (black_inv_fig, count) in enumerate(black_inv.items()):
+            x = self.board_size - self.inventory_figure_size * (i + 1)
+            y = 0
             figure_icon = get_figure_image(black_inv_fig, Direction.UP)
             figure_icon = cv2.resize(figure_icon, (self.inventory_figure_size, self.inventory_figure_size))
             utils.overlay_image_on_image(
                 black_inv_line,
                 figure_icon,
-                x=self.board_size - self.inventory_figure_size * (i + 1),
-                y=0
+                x=x,
+                y=y,
             )
-        for i, white_inv_fig in enumerate(white_inv):
+            cv2.putText(black_inv_line, str(count) if count > 1 else "",
+                        (x + self.inventory_figure_size // 2, y + self.inventory_figure_size),
+                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4,
+                        lineType=cv2.LINE_AA)
+        for i, (white_inv_fig, count) in enumerate(white_inv.items()):
+            x = self.inventory_figure_size * i
+            y = 0
             figure_icon = get_figure_image(white_inv_fig, Direction.DOWN)
             figure_icon = cv2.resize(figure_icon, (self.inventory_figure_size, self.inventory_figure_size))
             utils.overlay_image_on_image(
                 white_inv_line,
                 figure_icon,
-                x=self.inventory_figure_size * i,
-                y=0
+                x=x,
+                y=y,
             )
+            cv2.putText(white_inv_line, str(count) if count > 1 else "",
+                        (x + self.inventory_figure_size // 2, y + self.inventory_figure_size),
+                        cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4,
+                        lineType=cv2.LINE_AA)
         return black_inv_line, white_inv_line
 
     def __build_margin_lines(self) -> tuple[ImageNP, ImageNP]:
@@ -196,7 +212,7 @@ class BoardDrawer:
         """Returns pixel coordinate of figure in inventory"""
         assert self.show_inventory == True
         inv_i = {Direction.UP: 0, Direction.DOWN: 1}[direction]
-        inv = self.board.get_inventory_lists()[inv_i]
+        inv = list(self.board.inventories[inv_i].keys())
         figure_i = inv.index(figure)
         if direction == Direction.UP:
             cy = (
@@ -227,3 +243,37 @@ class BoardDrawer:
 
     def augment_real_image(self, real_image: ImageNP) -> ImageNP:
         pass
+
+    def get_bounding_boxes(self) -> dict:
+        """
+        Returns bounding boxes (x, y, w, h) of each point of interest on board image. This includes:
+            - each cell on board
+            - figures in inventory if present
+        """
+        ans = dict()
+        ans["board"] = [[None] * 9 for _ in range(9)]
+        y_margin = self.show_inventory * self.inventory_figure_size + self.show_turn_margin * self.inventory_margin_size
+        for i in range(9):
+            for j in range(9):
+                x = self.figure_size * j
+                y = y_margin + self.figure_size * i
+                w = self.figure_size
+                h = self.figure_size
+                ans["board"][i][j] = (x, y, w, h)
+
+        if self.show_inventory:
+            ans["inventory_black"] = dict()
+            ans["inventory_white"] = dict()
+            w = h = self.inventory_figure_size
+            for i, figure in enumerate(self.board.inventory_black.keys()):
+                y = (self.inventory_figure_size
+                     + 2 * self.inventory_margin_size * self.show_turn_margin
+                     + self.board_size)
+                x = self.board_size - self.inventory_figure_size * (i + 1)
+                ans["inventory_black"][figure] = (x, y, w, h)
+            for i, figure in enumerate(self.board.inventory_white.keys()):
+                y = 0
+                x = self.inventory_figure_size * i
+                ans["inventory_white"][figure] = (x, y, w, h)
+
+        return ans

@@ -138,6 +138,13 @@ class Direction(Enum):
             return Direction.DOWN
         return Direction.UP
 
+    def promotion_zone_array_y(self) -> list[int]:
+        return {
+            Direction.UP: [0, 1, 2],
+            Direction.DOWN: [6, 7, 8],
+        }[self]
+
+
 
 FIGURE_ICONS_PATHS = {
     Figure.PAWN: os.path.join(paths.FIGURE_ICONS_DIR, "pawn.png"),
